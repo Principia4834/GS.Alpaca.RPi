@@ -1,0 +1,1047 @@
+@page "/setup/v1/Telescope/{InstanceID:int}/setup"
+
+@inject IToastService toastService
+@inject NavigationManager uriHelper;
+@using GS.Simulator;
+@using ASCOM.Common.DeviceInterfaces;
+<body>
+    @if (!InstanceExists)
+    {
+        <h2>Device Instance @InstanceID does not exist in this simulator</h2>
+    }
+    else
+    {
+        if (InstanceID == 0)
+        {
+            <h3>
+                Telescope Setup
+            </h3>
+        }
+        else
+        {
+            <h3>
+                Telescope @InstanceID Setup
+            </h3>
+        }
+
+        @if (Device.Connected)
+        {
+            <fieldset>
+                <legend>Device is Connected</legend>
+                <p>The device must be disconnected in order to safely make changes.</p>
+            </fieldset>
+        }
+        <fieldset disabled="@Device.Connected">
+            <legend>Telescope Settings</legend>
+
+            <input type="checkbox" id="AutoUnpark" @bind="AutoUnpark">
+            <label for="AutoUnpark">Auto Unpark / Track on Start</label>
+            <br>
+
+            <input type="checkbox" id="NoCoordinates" @bind="NoCoordinates">
+            <label for="NoCoordinates">No Coordinates while Parked</label>
+            <br>
+
+            <input type="checkbox" id="DisconnectOnPark" @bind="DisconnectOnPark">
+            <label for="DisconnectOnPark">Disconnect On Park</label>
+            <br>
+
+            <label for="SlewRate">Slew Rate (deg/sec)</label>
+            <input type="number" id="SlewRate" min="0" max="360" step="1" @bind="SlewRate">
+            <br>
+
+            <input type="checkbox" id="RefractionOn" @bind="RefractionOn">
+            <label for="RefractionOn">Refraction On</label>
+            <br>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <legend>Site Information</legend>
+
+            <label for="LatitudeSign">Latitude</label>
+            <select id="LatitudeSign" @bind="LatitudeSign">
+                <option value="1">N</option>
+                <option value="-1">S</option>
+            </select>
+            <input type="number" min="0" max="90" @bind="LatitudeDegrees">
+            <input type="number" min="0" max="60" @bind="LatitudeMinutes">
+            <br>
+
+            <label for="LongitudeSign">Longitude</label>
+            <select id="LongitudeSign" @bind="LongitudeSign">
+                <option value="1">E</option>
+                <option value="-1">W</option>
+            </select>
+            <input type="number" min="0" max="180" @bind="LongitudeDegrees">
+            <input type="number" min="0" max="60" @bind="LongitudeMinutes">
+            <br>
+
+            <label for="Elevation">Elevation</label>
+            <input type="number" min="-3000" max="30000" step="1" id="Elevation" @bind="Elevation">
+            <br>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <legend>Mount Type</legend>
+            <select id="MountType" @bind="MountType">
+                <option value="AltAz">Alt-Azimuth</option>
+                <option value="Polar">Equatorial</option>
+                <option value="GermanPolar">German Equatorial</option>
+            </select>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <legend>Optics</legend>
+
+            <label for="Aperture">Aperture (m)</label>
+            <input type="number" id="Aperture" min="0" step=".01" @bind="Aperture">
+            <br>
+
+            <label for="ApertureArea">ApertureArea (m^2)</label>
+            <input type="number" id="ApertureArea" min="0" step=".01" @bind="ApertureArea">
+            <br>
+
+            <label for="FocalLength">FocalLength (m)</label>
+            <input type="number" id="FocalLength" min="0" step=".01" @bind="FocalLength">
+            <br>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <legend>Interface</legend>
+
+            <input type="checkbox" id="AltAzCoordinates" @bind="AltAzCoordinates">
+            <label for="AltAzCoordinates">Alt / Az Coordinates</label>
+            <br>
+            <input type="checkbox" id="AltAzSlewing" @bind="AltAzSlewing">
+            <label for="AltAzSlewing">Alt / Az Slewing</label>
+            <br>
+            <input type="checkbox" id="AltAzSync" @bind="AltAzSync">
+            <label for="AltAzSync">Alt / Az Sync</label>
+            <br>
+            <input type="checkbox" id="AltAzAsynchronous" @bind="AltAzAsynchronous">
+            <label for="AltAzAsynchronous">Alt / Az Asynchronous</label>
+            <br>
+
+            <input type="checkbox" id="EquatorialCoordinates" @bind="EquatorialCoordinates">
+            <label for="EquatorialCoordinates">Equatorial Coordinates</label>
+            <br>
+            <input type="checkbox" id="EquatorialSlewing" @bind="EquatorialSlewing">
+            <label for="EquatorialSlewing">Equatorial Slewing</label>
+            <br>
+            <input type="checkbox" id="EquatorialSync" @bind="EquatorialSync">
+            <label for="EquatorialSync">Equatorial Sync</label>
+            <br>
+            <input type="checkbox" id="EquatorialAsynchronous" @bind="EquatorialAsynchronous">
+            <label for="EquatorialAsynchronous">Equatorial Asynchronous</label>
+            <br>
+
+            <input type="checkbox" id="FindHome" @bind="FindHome">
+            <label for="FindHome">Find Home</label>
+            <br>
+            <input type="checkbox" id="Parking" @bind="Parking">
+            <label for="Parking">Parking</label>
+            <br>
+            <input type="checkbox" id="SetParkPosition" @bind="SetParkPosition">
+            <label for="SetParkPosition">Set Park Position</label>
+            <br>
+            <input type="checkbox" id="Unparking" @bind="Unparking">
+            <label for="Unparking">Unparking</label>
+            <br>
+
+            <label for="NumberAxis">Axes for Move</label>
+            <select id="NumberAxis" @bind="NumberAxis">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+            </select>
+            <br>
+
+            <input type="checkbox" id="LatLongElev" @bind="LatLongElev">
+            <label for="LatLongElev">Lat/Long/Elevation</label>
+            <br>
+
+            <input type="checkbox" id="Optics" @bind="Optics">
+            <label for="Optics">Optics</label>
+            <br>
+
+            <input type="checkbox" id="AlignmentMode" @bind="AlignmentMode">
+            <label for="AlignmentMode">Alignment Mode</label>
+            <br>
+            <input type="checkbox" id="SideOfPier" @bind="SideOfPier">
+            <label for="SideOfPier">Side of Pier</label>
+            <br>
+            <input type="checkbox" id="SetSideOfPier" @bind="SetSideOfPier">
+            <label for="BlahSetSideOfPier">Set Side of Pier</label>
+            <br>
+            <input type="checkbox" id="DestinationSideOfPier" @bind="DestinationSideOfPier">
+            <label for="DestinationSideOfPier">Destination Side of Pier</label>
+            <br>
+            <input type="checkbox" id="RefractionSupport" @bind="RefractionSupport">
+            <label for="RefractionSupport">Refraction Support</label>
+            <br>
+
+            <label for="EquatorialSystem">Equatorial System</label>
+            <select id="EquatorialSystem" @bind="EquatorialSystem">
+                <option value="1">Local</option>
+                <option value="4">B1950</option>
+                <option value="2">J2000</option>
+                <option value="3">J2050</option>
+                <option value="0">Other</option>
+            </select>
+            <br>
+
+            <input type="checkbox" id="DateTimeOn" @bind="DateTimeOn">
+            <label for="DateTimeOn">Date Time (UTC)</label>
+            <br>
+
+            <input type="checkbox" id="SiderealTime" @bind="SiderealTime">
+            <label for="SiderealTime">Sidereal Time</label>
+            <br>
+
+            <input type="checkbox" id="TrackingOnOff" @bind="TrackingOnOff">
+            <label for="BlaTrackingOnOffh">Tracking On / Off</label>
+            <br>
+            <input type="checkbox" id="TrackingRates" @bind="TrackingRates">
+            <label for="TrackingRates">Tracking Rates</label>
+            <br>
+            <input type="checkbox" id="GuideRates" @bind="GuideRates">
+            <label for="GuideRates">Guide Rates</label>
+            <br>
+            <input type="checkbox" id="PulseGuide" @bind="PulseGuide">
+            <label for="PulseGuide">Pulse Guide</label>
+            <br>
+            <input type="checkbox" id="DualAxisPulseGuide" @bind="DualAxisPulseGuide">
+            <label for="DualAxisPulseGuide">Dual Axis Pulse Guide</label>
+            <br>
+            <input type="checkbox" id="RaDecRates" @bind="RaDecRates">
+            <label for="RaDecRates">RA / Dec Rates</label>
+            <br>
+
+            <input type="checkbox" id="NoSyncMeridian" @bind="NoSyncMeridian">
+            <label for="NoSyncMeridian">No Sync past meridian</label>
+            <br>
+            <input type="checkbox" id="Version1Interface" @bind="Version1Interface">
+            <label for="Version1Interface">Version 1 Interface</label>
+            <br>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <legend>Park, Home and Startup</legend>
+
+            <label for="StartupMode">Startup Mode</label>
+            <select id="StartupMode" @bind="StartupMode">
+                @foreach (var mode in Simulator.TelescopeHardware.StartupOptions)
+                {
+                    <option value="@mode">@mode</option>
+                }
+            </select>
+            <br>
+            <br>
+
+            <label>Startup Position</label>
+            <br>
+
+            <input type="number" id="StartupAzimuth" @bind="StartupAzimuth">
+            <label for="StartupAzimuth" min="0" max="360" step=".1">Azimuth (deg)</label>
+            <br>
+
+            <input type="number" id="StartupAltitude" @bind="StartupAltitude">
+            <label for="StartupAltitude" min="-90" max="90" step=".1">Altitude  (deg)</label>
+
+            <br>
+            <br>
+
+            <label>Park Position</label>
+            <br>
+
+            <input type="number" id="ParkAzimuth" @bind="ParkAzimuth">
+            <label for="ParkAzimuth" min="0" max="360" step=".1">Azimuth (deg)</label>
+            <br>
+
+            <input type="number" id="ParkAltitude" @bind="ParkAltitude">
+            <label for="ParkAltitude" min="-90" max="90" step=".1">Altitude  (deg)</label>
+
+            <br>
+            <br>
+
+            <label>Home Position</label>
+            <br>
+
+            <input type="number" id="HomeAzimuth" @bind="HomeAzimuth">
+            <label for="HomeAzimuth" min="0" max="360" step=".1">Azimuth (deg)</label>
+            <br>
+
+            <input type="number" id="HomeAltitude" @bind="HomeAltitude">
+            <label for="HomeAltitude" min="-90" max="90" step=".1">Altitude  (deg)</label>
+
+            <br>
+        </fieldset>
+
+        <fieldset disabled="@Device.Connected">
+            <div class="grid-container-two">
+
+                <div class="grid-item-left">
+                    <button @onclick="Reset">Reset</button>
+                </div>
+                <div class="grid-item-right">
+                    <button @onclick="SaveDeviceSettings">Save</button>
+                </div>
+            </div>
+        </fieldset>
+    }
+</body>
+
+@code {
+    [Parameter]
+    public int InstanceID { get; set; }
+
+    private bool InstanceExists
+    {
+        get
+        {
+            return DeviceManager.Telescopes.ContainsKey(InstanceID);
+        }
+    }
+
+    /// <summary>
+    /// This access the device type not the interface to allow the device specific settings to be accessed.
+    /// </summary>
+    private Simulator.Telescope Device
+    {
+        get
+        {
+            return DeviceManager.GetTelescope((uint)InstanceID) as Simulator.Telescope;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+
+        if (InstanceExists)
+        {
+            try
+            {
+                var interfaceversion = Device.InterfaceVersion;
+            }
+            catch
+            {
+
+            }
+
+
+            AutoUnpark = TelescopeHardware.AutoTrack;
+
+            NoCoordinates = TelescopeHardware.NoCoordinatesAtPark;
+
+            DisconnectOnPark = TelescopeHardware.DisconnectOnPark;
+
+            SlewRate = TelescopeHardware.MaximumSlewRate;
+
+            RefractionOn = TelescopeHardware.Refraction;
+
+            LatitudeSign = Math.Sign(TelescopeHardware.Latitude);
+
+            LatitudeDegrees = (int)Math.Abs(TelescopeHardware.Latitude);
+
+            LatitudeMinutes = double.Parse(Math.Abs((TelescopeHardware.Latitude - (int)TelescopeHardware.Latitude) * 60).ToString("00.000"));
+
+            LongitudeSign = Math.Sign(TelescopeHardware.Longitude);
+
+            LongitudeDegrees = Math.Abs((int)TelescopeHardware.Longitude);
+
+            LongitudeMinutes = double.Parse(Math.Abs((TelescopeHardware.Longitude - (int)TelescopeHardware.Longitude) * 60).ToString("00.000"));
+
+            Elevation = TelescopeHardware.Elevation;
+
+            MountType = TelescopeHardware.AlignmentMode;
+
+            Aperture = TelescopeHardware.ApertureDiameter;
+
+            ApertureArea = TelescopeHardware.ApertureArea;
+
+            FocalLength = TelescopeHardware.FocalLength;
+
+            StartupMode = TelescopeHardware.StartUpMode;
+
+            StartupAzimuth = TelescopeHardware.StartCoordinates.X;
+
+            StartupAltitude = TelescopeHardware.StartCoordinates.Y;
+
+            ParkAzimuth = TelescopeHardware.ParkAzimuth;
+
+            ParkAltitude = TelescopeHardware.ParkAltitude;
+
+            HomeAzimuth = TelescopeHardware.HomePosition.X;
+
+            HomeAltitude = TelescopeHardware.HomePosition.Y;
+
+            AltAzCoordinates = TelescopeHardware.CanAltAz;
+
+            AltAzSlewing = TelescopeHardware.CanSlewAltAz;
+
+            AltAzSync = TelescopeHardware.CanSyncAltAz;
+
+            AltAzAsynchronous = TelescopeHardware.CanSlewAltAzAsync;
+
+            EquatorialCoordinates = TelescopeHardware.CanEquatorial;
+
+            EquatorialSlewing = TelescopeHardware.CanSlew;
+
+            EquatorialSync = TelescopeHardware.CanSync;
+
+            EquatorialAsynchronous = TelescopeHardware.CanSlewAsync;
+
+            FindHome = TelescopeHardware.CanFindHome;
+
+            Parking = TelescopeHardware.CanPark;
+
+            SetParkPosition = TelescopeHardware.CanSetPark;
+
+            Unparking = TelescopeHardware.CanUnpark;
+
+            NumberAxis = TelescopeHardware.NumberMoveAxis;
+
+            LatLongElev = TelescopeHardware.CanLatLongElev;
+
+            Optics = TelescopeHardware.CanOptics;
+
+            AlignmentMode = TelescopeHardware.CanAlignmentMode;
+
+            SideOfPier = TelescopeHardware.CanPointingState;
+
+            SetSideOfPier = TelescopeHardware.CanSetPointingState;
+
+            DestinationSideOfPier = TelescopeHardware.CanDestinationSideofPier;
+
+            RefractionSupport = TelescopeHardware.CanDoesRefraction;
+
+            EquatorialSystem = TelescopeHardware.EquatorialSystem;
+
+            DateTimeOn = TelescopeHardware.CanDateTime;
+
+            SiderealTime = TelescopeHardware.CanSiderealTime;
+
+            TrackingOnOff = TelescopeHardware.CanSetTracking;
+
+            TrackingRates = TelescopeHardware.CanTrackingRates;
+
+            GuideRates = TelescopeHardware.CanSetGuideRates;
+
+            PulseGuide = TelescopeHardware.CanPulseGuide;
+
+            DualAxisPulseGuide = TelescopeHardware.CanDualAxisPulseGuide;
+
+            RaDecRates = TelescopeHardware.CanSetEquatorialRates;
+
+            NoSyncMeridian = TelescopeHardware.NoSyncPastMeridian;
+
+            Version1Interface = TelescopeHardware.VersionOneOnly;
+        }
+
+        base.OnInitialized();
+    }
+
+    #region Connection
+
+    public bool Connected
+    {
+        get
+        {
+            return Device.Connected;
+        }
+    }
+
+    public string ConnectionColor
+    {
+        get
+        {
+            if (Connected)
+            {
+                return "red";
+            }
+            return "gray";
+        }
+    }
+
+    public string ConnectText
+    {
+        get
+        {
+            if (Device.Connected)
+            {
+                return "Disconnect";
+            }
+            return "Connect";
+        }
+    }
+
+    public void Connect()
+    {
+        Device.Connected = !Device.Connected;
+    }
+
+    #endregion
+
+    #region Settings
+
+    bool AutoUnpark
+    {
+        get;
+        set;
+    }
+
+    bool NoCoordinates
+    {
+        get;
+        set;
+    }
+
+    bool DisconnectOnPark
+    {
+        get;
+        set;
+    }
+
+    int SlewRate
+    {
+        get;
+        set;
+    }
+
+    bool RefractionOn
+    {
+        get;
+        set;
+    }
+
+    int LatitudeSign
+    {
+        get;
+        set;
+    }
+
+    int LatitudeDegrees
+    {
+        get;
+        set;
+    }
+
+    double LatitudeMinutes
+    {
+        get;
+        set;
+    }
+
+    int LongitudeSign
+    {
+        get;
+        set;
+    }
+
+    int LongitudeDegrees
+    {
+        get;
+        set;
+    }
+
+    double LongitudeMinutes
+    {
+        get;
+        set;
+    }
+
+    double Elevation
+    {
+        get;
+        set;
+    }
+
+    AlignmentMode MountType
+    {
+        get;
+        set;
+    }
+
+    double Aperture
+    {
+        get;
+        set;
+    }
+
+    double ApertureArea
+    {
+        get;
+        set;
+    }
+
+    double FocalLength
+    {
+        get;
+        set;
+    }
+
+    string StartupMode
+    {
+        get;
+        set;
+    }
+
+    double StartupAzimuth
+    {
+        get;
+        set;
+    }
+
+    double StartupAltitude
+    {
+        get;
+        set;
+    }
+
+    double ParkAzimuth
+    {
+        get;
+        set;
+    }
+
+    double ParkAltitude
+    {
+        get;
+        set;
+    }
+
+    double HomeAzimuth
+    {
+        get;
+        set;
+    }
+
+    double HomeAltitude
+    {
+        get;
+        set;
+    }
+
+    bool AltAzCoordinates
+    {
+        get;
+        set;
+    }
+
+    bool AltAzSlewing
+    {
+        get;
+        set;
+    }
+
+    bool AltAzSync
+    {
+        get;
+        set;
+    }
+
+    bool AltAzAsynchronous
+    {
+        get;
+        set;
+    }
+
+    bool EquatorialCoordinates
+    {
+        get;
+        set;
+    }
+
+    bool EquatorialSlewing
+    {
+        get;
+        set;
+    }
+
+    bool EquatorialSync
+    {
+        get;
+        set;
+    }
+
+    bool EquatorialAsynchronous
+    {
+        get;
+        set;
+    }
+
+    bool FindHome
+    {
+        get;
+        set;
+    }
+
+    bool Parking
+    {
+        get;
+        set;
+    }
+
+    bool SetParkPosition
+    {
+        get;
+        set;
+    }
+
+    bool Unparking
+    {
+        get;
+        set;
+    }
+
+    int NumberAxis
+    {
+        get;
+        set;
+    }
+
+    bool LatLongElev
+    {
+        get;
+        set;
+    }
+
+    bool Optics
+    {
+        get;
+        set;
+    }
+
+    bool AlignmentMode
+    {
+        get;
+        set;
+    }
+
+    bool SideOfPier
+    {
+        get;
+        set;
+    }
+
+    bool SetSideOfPier
+    {
+        get;
+        set;
+    }
+
+    bool DestinationSideOfPier
+    {
+        get;
+        set;
+    }
+
+    bool RefractionSupport
+    {
+        get;
+        set;
+    }
+
+    int EquatorialSystem
+    {
+        get;
+        set;
+    }
+
+    bool DateTimeOn
+    {
+        get;
+        set;
+    }
+
+    bool SiderealTime
+    {
+        get;
+        set;
+    }
+
+    bool TrackingOnOff
+    {
+        get;
+        set;
+    }
+
+    bool TrackingRates
+    {
+        get;
+        set;
+    }
+
+    bool GuideRates
+    {
+        get;
+        set;
+    }
+
+    bool PulseGuide
+    {
+        get;
+        set;
+    }
+
+    bool DualAxisPulseGuide
+    {
+        get;
+        set;
+    }
+
+    bool RaDecRates
+    {
+        get;
+        set;
+    }
+
+    bool NoSyncMeridian
+    {
+        get;
+        set;
+    }
+
+    bool Version1Interface
+    {
+        get;
+        set;
+    }
+    #endregion
+
+    public void Reset()
+    {
+        try
+        {
+            TelescopeHardware.ClearProfile();
+            TelescopeHardware.Init();
+            toastService.ShowSuccess("Settings Reset");
+
+            var timer = new System.Threading.Timer(new System.Threading.TimerCallback(_ =>
+            {
+                uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+            }), null, 2000, 2000);
+        }
+        catch (Exception ex)
+        {
+            toastService.ShowError(ex.Message);
+        }
+    }
+
+    public void SaveDeviceSettings()
+    {
+        try
+        {
+            if (SlewRate <= 0 || SlewRate > 360)
+            {
+                toastService.ShowWarning("Slew Rate must be between 0 and 360");
+                return;
+            }
+
+            if (LatitudeDegrees < 0 || LatitudeDegrees > 90)
+            {
+                toastService.ShowWarning("Latitude Degrees must be between 0 and 90");
+                return;
+            }
+
+            if (LatitudeMinutes < 0 || LatitudeMinutes > 60)
+            {
+                toastService.ShowWarning("Latitude Minutes must be between 0 and 60");
+                return;
+            }
+
+            if ((LatitudeDegrees + LatitudeMinutes / 60) > 90)
+            {
+                toastService.ShowWarning("The total Latitude must not be greater than 90.");
+                return;
+            }
+
+            if (LongitudeDegrees < 0 || LongitudeDegrees > 180)
+            {
+                toastService.ShowWarning("Longitude Degrees must be between 0 and 180");
+                return;
+            }
+
+            if (LongitudeMinutes < 0 || LongitudeMinutes > 60)
+            {
+                toastService.ShowWarning("Longitude Minutes must be between 0 and 60");
+                return;
+            }
+
+            if ((LongitudeDegrees + LongitudeMinutes / 60) > 180)
+            {
+                toastService.ShowWarning("The total Longitude must not be greater than 180.");
+                return;
+            }
+
+            if (Elevation < -3000 || Elevation > 30000)
+            {
+                toastService.ShowWarning("Elevation must be between -3000 and 30000");
+                return;
+            }
+
+            if (Aperture <= 0)
+            {
+                toastService.ShowWarning("Aperture must be greater than 0");
+                return;
+            }
+
+            if (ApertureArea <= 0)
+            {
+                toastService.ShowWarning("Aperture Area must be greater than 0");
+                return;
+            }
+
+            if (FocalLength <= 0)
+            {
+                toastService.ShowWarning("Focal Length must be greater than 0");
+                return;
+            }
+
+            if (StartupAzimuth < 0 || StartupAzimuth > 360)
+            {
+                toastService.ShowWarning("Startup Azimuth must be between 0 and 360");
+                return;
+            }
+
+            if (StartupAltitude < -90 || StartupAltitude > 90)
+            {
+                toastService.ShowWarning("Startup Altitude must be between -90 and 90");
+                return;
+            }
+
+            if (ParkAzimuth < 0 || ParkAzimuth > 360)
+            {
+                toastService.ShowWarning("Park Azimuth must be between 0 and 360");
+                return;
+            }
+
+            if (ParkAltitude < -90 || ParkAltitude > 90)
+            {
+                toastService.ShowWarning("Park Altitude must be between -90 and 90");
+                return;
+            }
+
+            if (HomeAzimuth < 0 || HomeAzimuth > 360)
+            {
+                toastService.ShowWarning("Home Azimuth must be between 0 and 360");
+                return;
+            }
+
+            if (HomeAltitude < -90 || HomeAltitude > 90)
+            {
+                toastService.ShowWarning("Home Altitude must be between -90 and 90");
+                return;
+            }
+
+            TelescopeHardware.AutoTrack = AutoUnpark;
+
+            TelescopeHardware.NoCoordinatesAtPark = NoCoordinates;
+
+            TelescopeHardware.DisconnectOnPark = DisconnectOnPark; ;
+
+            TelescopeHardware.MaximumSlewRate = SlewRate;
+
+            TelescopeHardware.Refraction = RefractionOn; ;
+
+            TelescopeHardware.Latitude = LatitudeSign * (LatitudeDegrees + LatitudeMinutes / 60);
+
+            TelescopeHardware.Longitude = LongitudeSign * (LongitudeDegrees + LongitudeMinutes / 60);
+
+            TelescopeHardware.Elevation = Elevation; ;
+
+            TelescopeHardware.AlignmentMode = MountType;
+
+            TelescopeHardware.ApertureDiameter = Aperture;
+
+            TelescopeHardware.ApertureArea = ApertureArea;
+
+            TelescopeHardware.FocalLength = FocalLength;
+
+            TelescopeHardware.StartUpMode = StartupMode;
+
+            TelescopeHardware.StartCoordinates.X = StartupAzimuth;
+
+            TelescopeHardware.StartCoordinates.Y = StartupAltitude;
+
+            TelescopeHardware.ParkAzimuth = ParkAzimuth;
+
+            TelescopeHardware.ParkAltitude = ParkAltitude;
+
+            TelescopeHardware.HomePosition.X = HomeAzimuth;
+
+            TelescopeHardware.HomePosition.Y = HomeAltitude;
+
+            TelescopeHardware.CanAltAz = AltAzCoordinates;
+
+            TelescopeHardware.CanSlewAltAz = AltAzSlewing;
+
+            TelescopeHardware.CanSyncAltAz = AltAzSync;
+
+            TelescopeHardware.CanSlewAltAzAsync = AltAzAsynchronous;
+
+            TelescopeHardware.CanEquatorial = EquatorialCoordinates;
+
+            TelescopeHardware.CanSlew = EquatorialSlewing;
+
+            TelescopeHardware.CanSync = EquatorialSync;
+
+            TelescopeHardware.CanSlewAsync = EquatorialAsynchronous;
+
+            TelescopeHardware.CanFindHome = FindHome;
+
+            TelescopeHardware.CanPark = Parking;
+
+            TelescopeHardware.CanSetPark = SetParkPosition;
+
+            TelescopeHardware.CanUnpark = Unparking;
+
+            TelescopeHardware.NumberMoveAxis = NumberAxis;
+
+            TelescopeHardware.CanLatLongElev = LatLongElev;
+
+            TelescopeHardware.CanOptics = Optics;
+
+            TelescopeHardware.CanAlignmentMode = AlignmentMode;
+
+            TelescopeHardware.CanPointingState = SideOfPier;
+
+            TelescopeHardware.CanSetPointingState = SetSideOfPier;
+
+            TelescopeHardware.CanDestinationSideofPier = DestinationSideOfPier;
+
+            TelescopeHardware.CanDoesRefraction = RefractionSupport;
+
+            TelescopeHardware.EquatorialSystem = EquatorialSystem;
+
+            TelescopeHardware.CanDateTime = DateTimeOn;
+
+            TelescopeHardware.CanSiderealTime = SiderealTime;
+
+            TelescopeHardware.CanSetTracking = TrackingOnOff;
+
+            TelescopeHardware.CanTrackingRates = TrackingRates;
+
+            TelescopeHardware.CanSetGuideRates = GuideRates;
+
+            TelescopeHardware.CanPulseGuide = PulseGuide;
+
+            TelescopeHardware.CanDualAxisPulseGuide = DualAxisPulseGuide;
+
+            TelescopeHardware.CanSetEquatorialRates = RaDecRates;
+
+            TelescopeHardware.NoSyncPastMeridian = NoSyncMeridian;
+
+            TelescopeHardware.VersionOneOnly = Version1Interface;
+
+            TelescopeHardware.StoreHomeParkStart();
+
+            toastService.ShowSuccess("Settings Saved");
+        }
+        catch (Exception ex)
+        {
+            toastService.ShowError(ex.Message);
+        }
+    }
+}

@@ -1,0 +1,31 @@
+﻿@inject NavigationManager NavigationManager
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Program).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p>@LogAndGetError()</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+
+    string LogAndGetError(){
+        var error = $"Route {NavigationManager.Uri} was not found on this driver";
+
+        try
+        {
+            Logging.LogError(error);
+        }
+        catch
+        {
+
+        }
+        return error;
+    }
+}

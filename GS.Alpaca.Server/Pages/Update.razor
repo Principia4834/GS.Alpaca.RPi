@@ -1,0 +1,115 @@
+﻿@page "/update"
+
+@using Octokit;
+@using LetsMake;
+
+<fieldset>
+    <legend>ASCOM Alpaca Simulators</legend>
+    <p>Version - @ServerSettings.ServerVersion</p>
+    <p>Copyright 2021-23 Daniel Van Noord</p>
+
+</fieldset>
+
+<fieldset>
+    <legend>Updates</legend>
+    @if (ServerSettings.UpdateChecker.UpdateAvailable)
+    {
+        @if (HasNewerRelease)
+        {
+            <p>New release available, Version - @LatestVersion</p>   
+            <a href="@URL" target="_blank">@URL</a>
+
+        }
+
+        @if (HasNewerPreview)
+        {
+            <p>New pre-release available, Version - @LatestPreviewVersion</p>          
+            <a href="@PreviewURL" target="_blank">@PreviewURL</a>
+        }
+    }
+    else
+    {
+        @if (UpToDate)
+        {
+            <p>Up to date</p>
+        }
+        else
+        {
+            <p>Found no updates or failed to read from the server. You should check manually for new releases.</p>
+        }
+    }
+
+</fieldset>
+
+@code {
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (ServerSettings.UpdateChecker.HasNewerRelease)
+            {
+                HasNewerRelease = true;
+                LatestVersion = ServerSettings.UpdateChecker.LatestRelease.ReleaseSemVersionFromTag().ToString();
+                URL = ServerSettings.UpdateChecker.LatestRelease.HtmlUrl;
+            }
+
+            if (ServerSettings.UpdateChecker.HasNewerPrerelease)
+            {
+                HasNewerPreview = true;
+                LatestPreviewVersion = ServerSettings.UpdateChecker.LatestPrerelease.ReleaseSemVersionFromTag().ToString();
+                PreviewURL = ServerSettings.UpdateChecker.LatestPrerelease.HtmlUrl;
+            }
+        }
+        catch
+        {
+
+        }
+
+        base.OnInitialized();
+    }
+
+
+    string LatestVersion
+    {
+        get;
+        set;
+    }
+
+    string URL
+    {
+        get;
+        set;
+    }
+
+    string LatestPreviewVersion
+    {
+        get;
+        set;
+    }
+
+    string PreviewURL
+    {
+        get;
+        set;
+    }
+
+    bool UpToDate
+    {
+        get
+        {
+            return !ServerSettings.UpdateChecker.UpdateAvailable;
+        }
+    }
+
+    bool HasNewerPreview
+    {
+        get;
+        set;
+    } = false;
+
+    bool HasNewerRelease
+    {
+        get;
+        set;
+    } = false;
+}

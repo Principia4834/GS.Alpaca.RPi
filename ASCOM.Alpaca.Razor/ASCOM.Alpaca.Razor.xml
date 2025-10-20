@@ -1,0 +1,1479 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GS.Alpaca.Razor</name>
+    </assembly>
+    <members>
+        <member name="T:ASCOM.Alpaca.AlpacaController">
+            <summary>
+            A Custom REST MVC controller with additions to help handle Alpaca responses and error responses.
+            This contains the Alpaca endpoints that are common to all devices.
+            </summary>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Connect(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Connect to a device asynchronously
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Disconnect(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Disconnect to a device asynchronously
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Connecting(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns True while the device is undertaking an asynchronous connect or disconnect operation.
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.DeviceState(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the device operational state in a single call.
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Action(System.UInt32,System.String,System.String,System.UInt32,System.UInt32)">
+            <summary>
+            Invokes the specified device-specific action.
+            </summary>
+            <remarks>
+            <para>Actions and SupportedActions are a standardised means for drivers to extend functionality beyond the built-in capabilities of the ASCOM device interfaces.</para>
+            <br/>
+            <para>The key advantage of using Actions is that drivers can expose any device specific functionality required. The downside is that, in order to use these unique features, every application author would need to create bespoke code to present or exploit them.</para>
+            <br/>
+            <para>The Action parameter and return strings are deceptively simple, but can support transmission of arbitrarily complex data structures, for example through JSON encoding.</para>
+            <br/>
+            <para>This capability will be of primary value to</para>
+            <br/>
+            <para>  * bespoke software and hardware configurations where a single entity controls both the consuming application software and the hardware / driver environment</para>
+            <para>  * a group of application and device authors to quickly formulate and try out new interface capabilities without requiring an immediate change to the ASCOM device interface, which will take a lot longer than just agreeing a name, input parameters and a standard response for an Action command.</para>
+            <br/>
+            <para>The list of Action commands supported by a driver can be discovered through the SupportedActions property.</para>
+            <br/>
+            <para>This method should return an error message and NotImplementedException error number (0x400) if the driver just implements the standard ASCOM device methods and has no bespoke, unique, functionality.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Action">A well known name that represents the action to be carried out.</param>
+            <param name="Parameters">List of required parameters or an Empty String if none are required</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.CommandBlind(System.UInt32,System.String,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Transmits an arbitrary string to the device
+            </summary>
+            <remarks>
+            <para>Transmits an arbitrary string to the device and does not wait for a response. Optionally, protocol framing characters may be added to the string before transmission.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Command">A well known name that represents the action to be carried out.</param>
+            <param name="Raw">If set to true the string is transmitted 'as-is', if set to false then protocol framing characters may be added prior to transmission.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.CommandBool(System.UInt32,System.String,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Transmits an arbitrary string to the device and returns a boolean value from the device.
+            </summary>
+            <remarks>
+            <para>Transmits an arbitrary string to the device and waits for a boolean response. Optionally, protocol framing characters may be added to the string before transmission.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Command">A well known name that represents the action to be carried out.</param>
+            <param name="Raw">If set to true the string is transmitted 'as-is', if set to false then protocol framing characters may be added prior to transmission.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.CommandString(System.UInt32,System.String,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Transmits an arbitrary string to the device and returns a string value from the device.
+            </summary>
+            <remarks>
+            <para>Transmits an arbitrary string to the device and waits for a string response. Optionally, protocol framing characters may be added to the string before transmission.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Command">A well known name that represents the action to be carried out.</param>
+            <param name="Raw">If set to true the string is transmitted 'as-is', if set to false then protocol framing characters may be added prior to transmission.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Connected(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Retrieves the connected state of the device
+            </summary>
+            <remarks>
+            <para>Retrieves the connected state of the device</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Connected(System.UInt32,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the connected state of the device
+            </summary>
+            <remarks>
+            <para>Sets the connected state of the device</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Connected">Set True to connect to the device hardware, set False to disconnect from the device hardware.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Description(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Device description
+            </summary>
+            <remarks>
+            <para>The description of the device</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.DriverInfo(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Device driver description
+            </summary>
+            <remarks>
+            <para>The description of the driver</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.DriverVersion(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Driver Version
+            </summary>
+            <remarks>
+            <para>A string containing only the major and minor version of the driver.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.InterfaceVersion(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            The ASCOM Device interface version number that this device supports.
+            </summary>
+            <remarks>
+            <para>This method returns the version of the ASCOM device interface contract to which this device complies. Only one interface version is current at a moment in time and all new devices should be built to the latest interface version. Applications can choose which device interface versions they support and it is in their interest to support previous versions as well as the current version to ensure they can use the largest number of devices.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.Name(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Device name
+            </summary>
+            <remarks>
+            <para>The name of the device</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.AlpacaController.SupportedActions(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the list of action names supported by this driver.
+            </summary>
+            <remarks>
+            <para>Returns the list of action names supported by this driver.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.ProcessBaseController.ProcessRequest(System.Func{System.Boolean},System.UInt32,System.UInt32,System.UInt32,System.String)">
+            <summary>
+            This function logs the incoming API call then executes the passed function
+            By executing the function this can catch any errors
+            If it completes successfully a bool response is returned with an http 200
+            If no device is available an HTTP 400 is returned
+            If the device call fails an Alpaca JSON error is returned
+            </summary>
+            <param name="Operation">The operation to preform on the device. Often this is just a lambda that returns a property. By passing it in as a function it can be executed inside a try catch and handle the exception.</param>
+            <param name="TransactionID">The current server transaction id</param>
+            <param name="ClientID">The client id</param>
+            <param name="ClientTransactionID">The client transaction id</param>
+            <param name="Payload">Any payload values, optional, only used for logging</param>
+            <returns></returns>
+        </member>
+        <member name="M:ASCOM.Alpaca.ProcessBaseController.LogAPICall(System.Net.IPAddress,System.String,System.UInt32,System.UInt32,System.UInt32,System.String)">
+            <summary>
+            Log out an API request to the ASCOM Standard Logger Instance. This logs at a level of Verbose.
+            </summary>
+            <param name="remoteIpAddress">The IP Address of the remote computer</param>
+            <param name="request">The requested API</param>
+            <param name="clientID">The Client ID</param>
+            <param name="clientTransactionID">The Client Transaction ID</param>
+            <param name="transactionID">The Server Transaction ID</param>
+            <param name="payload">The function payload if any exists</param>
+        </member>
+        <member name="T:ASCOM.Alpaca.CatchAll">
+            <summary>
+            This controller catches all requests on the /api that do not have a controller and return an HTTP 400.
+            To have this not catch something create the route.
+            </summary>
+        </member>
+        <member name="M:ASCOM.Alpaca.ManagementController.ApiVersions(System.UInt32,System.UInt32)">
+            <summary>
+            Supported Alpaca API versions
+            </summary>
+            <remarks>
+            <para>Returns an integer array of supported Alpaca API version numbers.</para>
+            </remarks>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.ManagementController.Description(System.UInt32,System.UInt32)">
+            <summary>
+            Summary information about this device as a whole
+            </summary>
+            <remarks>
+            <para>Summary information about each available ASCOM device</para>
+            </remarks>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.ManagementController.ConfiguredDevices(System.UInt32,System.UInt32)">
+            <summary>
+            Summary information about each available ASCOM device
+            </summary>
+            <remarks>
+            <para>Returns an array of device description objects, providing unique information for each served device, enabling them to be accessed through the Alpaca Device API.</para>
+            </remarks>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.AbortSlew(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Immediately stops a slew in progress.
+            </summary>
+            <remarks>
+            <para>Immediately Stops a slew in progress.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.AlignmentMode(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current mount alignment mode
+            </summary>
+            <remarks>
+            <para>Returns the alignment mode of the mount (Alt/Az, Polar, German Polar). The alignment mode is specified as an integer value from the AlignmentModes Enum.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Altitude(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the mount's altitude above the horizon.
+            </summary>
+            <remarks>
+            <para>The altitude above the local horizon of the mount's current position (degrees, positive up)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.ApertureArea(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the telescope's aperture.
+            </summary>
+            <remarks>
+            <para>The area of the telescope's aperture, taking into account any obstructions (square meters)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.ApertureDiameter(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the telescope's effective aperture.
+            </summary>
+            <remarks>
+            <para>The telescope's effective aperture diameter (meters)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.AtHome(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the mount is at the home position.
+            </summary>
+            <remarks>
+            <para>True if the mount is stopped in the Home position. Set only following a FindHome() operation, and reset with any slew operation. This property must be False if the telescope does not support homing.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.AtPark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope is at the park position.
+            </summary>
+            <remarks>
+            <para>True if the telescope has been put into the parked state by the see Park() method. Set False by calling the Unpark() method.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.AxisRates(System.UInt32,ASCOM.Common.DeviceInterfaces.TelescopeAxis,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the rates at which the telescope may be moved about the specified axis.
+            </summary>
+            <remarks>
+            <para>The rates at which the telescope may be moved about the specified axis by the MoveAxis(TelescopeAxes, Double) method.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Axis">The axis about which rate information is desired. 0 = axisPrimary, 1 = axisSecondary, 2 = axisTertiary.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Azimuth(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the mount's azimuth.
+            </summary>
+            <remarks>
+            <para>The azimuth at the local horizon of the mount's current position (degrees, North-referenced, positive East/clockwise).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanFindHome(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the mount can find the home position.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed finding its home position (FindHome() method).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanMoveAxis(System.UInt32,ASCOM.Common.DeviceInterfaces.TelescopeAxis,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can move the requested axis.
+            </summary>
+            <remarks>
+            <para>True if this telescope can move the requested axis.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Axis">The axis about which rate information is desired. 0 = axisPrimary, 1 = axisSecondary, 2 = axisTertiary.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanPark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can be parked.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed parking (Park() method)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanPulseGuide(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can be pulse guided.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetDeclinationRate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the DeclinationRate property can be changed.
+            </summary>
+            <remarks>
+            <para>True if the DeclinationRate property can be changed to provide offset tracking in the declination axis.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetGuideRates(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the Guide Rates can be changed.
+            </summary>
+            <remarks>
+            <para>True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can be adjusted.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetPark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope park position can be set.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed setting of its park position (SetPark() method)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetPierSide(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope SideOfPier can be set.
+            </summary>
+            <remarks>
+            <para>True if the SideOfPier property can be set, meaning that the mount can be forced to flip.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetRightAscensionRate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the RightAscensionRate property can be changed.
+            </summary>
+            <remarks>
+            <para>True if the RightAscensionRate property can be changed to provide offset tracking in the right ascension axis.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSetTracking(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the Tracking property can be changed.
+            </summary>
+            <remarks>
+            <para>True if the Tracking property can be changed, turning telescope sidereal tracking on and off.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSlew(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can slew synchronously.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed slewing (synchronous or asynchronous) to equatorial coordinates</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSlewAltAz(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can slew synchronously to AltAz coordinates.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed slewing (synchronous or asynchronous) to local horizontal coordinates</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSlewAltAzAsync(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can slew asynchronously to AltAz coordinates.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed asynchronous slewing to local horizontal coordinates</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSlewAsync(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can slew asynchronously.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed asynchronous slewing to equatorial coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSync(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can sync to equatorial coordinates.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed syncing to equatorial coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanSyncAltAz(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can sync to local horizontal coordinates.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed syncing to local horizontal coordinates</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.CanUnpark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope can be unparked.
+            </summary>
+            <remarks>
+            <para>True if this telescope is capable of programmed unparking (Unpark() method)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Declination(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the mount's declination.
+            </summary>
+            <remarks>
+            <para>The declination (degrees) of the mount's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property. Reading the property will raise an error if the value is unavailable.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.DeclinationRate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the telescope's declination tracking rate.
+            </summary>
+            <remarks>
+            <para>The declination tracking rate (arcseconds per SI second, default = 0.0). Please note that rightascensionrate units are arcseconds per sidereal second.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.DeclinationRate(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the telescope's declination tracking rate.
+            </summary>
+            <remarks>
+            <para>Sets the declination tracking rate (arcseconds per SI second). Please note that rightascensionrate units are arcseconds per sidereal second.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="DeclinationRate">Declination tracking rate (arcseconds per SI second). Please note that rightascensionrate units are arcseconds per sidereal second.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.DestinationSideOfPier(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Predicts the pointing state after a German equatorial mount slews to given coordinates.
+            </summary>
+            <remarks>
+            <para>Predicts the pointing state that a German equatorial mount will be in if it slews to the given coordinates. The return value will be one of - 0 = pierEast, 1 = pierWest, -1 = pierUnknown</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="RightAscension">Right Ascension coordinate (0.0 to 23.99999999 hours)</param>
+            <param name="Declination">Declination coordinate (-90.0 to +90.0 degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.DoesRefraction(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether atmospheric refraction is applied to coordinates.
+            </summary>
+            <remarks>
+            <para>True if the telescope or driver applies atmospheric refraction to coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.DoesRefraction(System.UInt32,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Determines whether atmospheric refraction is applied to coordinates.
+            </summary>
+            <remarks>
+            <para>Determines whether atmospheric refraction is applied to coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="DoesRefraction">Set True to make the telescope or driver applies atmospheric refraction to coordinates.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.EquatorialSystem(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current equatorial coordinate system used by this telescope.
+            </summary>
+            <remarks>
+            <para>Returns the current equatorial coordinate system used by this telescope (e.g. Topocentric or J2000).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.FindHome(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Moves the mount to the "home" position.
+            </summary>
+            <remarks>
+            <para>Locates the telescope's "home" position (synchronous)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.FocalLength(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the telescope's focal length in meters.
+            </summary>
+            <remarks>
+            <para>The telescope's focal length in meters</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.GuideRateDeclination(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current Declination rate offset for telescope guiding
+            </summary>
+            <remarks>
+            <para>The current Declination movement rate offset for telescope guiding (degrees/sec)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.GuideRateDeclination(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the current Declination movement rate offset for telescope guiding (degrees/sec).
+            </summary>
+            <remarks>
+            <para>Sets the current Declination movement rate offset for telescope guiding (degrees/sec).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="GuideRateDeclination">Declination movement rate (offset degrees/sec).</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.GuideRateRightAscension(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current RightAscension rate offset for telescope guiding
+            </summary>
+            <remarks>
+            <para>The current RightAscension movement rate offset for telescope guiding (degrees/sec)</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.GuideRateRightAscension(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the current RightAscension rate offset for telescope guiding.
+            </summary>
+            <remarks>
+            <para>Sets the current RightAscension movement rate offset for telescope guiding (degrees/sec).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="GuideRateRightAscension">RightAscension movement rate offset (degrees/sec).</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.IsPulseGuiding(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope is currently executing a PulseGuide command
+            </summary>
+            <remarks>
+            <para>True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.MoveAxis(System.UInt32,ASCOM.Common.DeviceInterfaces.TelescopeAxis,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Moves a telescope axis at the given rate.
+            </summary>
+            <remarks>
+            <para>Move the telescope in one axis at the given rate.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Axis">The axis about which rate information is desired. 0 = axisPrimary, 1 = axisSecondary, 2 = axisTertiary.</param>
+            <param name="Rate">The rate of motion (deg/sec) about the specified axis</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Park(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Park the mount
+            </summary>
+            <remarks>
+            <para>Move the telescope to its park position, stop all motion (or restrict to a small safe range), and set AtPark to True.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.PulseGuide(System.UInt32,ASCOM.Common.DeviceInterfaces.GuideDirection,System.Int32,System.UInt32,System.UInt32)">
+            <summary>
+            Moves the scope in the given direction for the given time.
+            </summary>
+            <remarks>
+            <para>Moves the scope in the given direction for the given interval or time at the rate given by the corresponding guide rate property</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Direction">The direction in which the guide-rate motion is to be made. 0 = guideNorth, 1 = guideSouth, 2 = guideEast, 3 = guideWest</param>
+            <param name="Duration">The duration of the guide-rate motion (milliseconds)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.RightAscension(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the mount's right ascension coordinate.
+            </summary>
+            <remarks>
+            <para>The right ascension (hours) of the mount's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.RightAscensionRate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the telescope's right ascension tracking rate.
+            </summary>
+            <remarks>
+            <para>The right ascension tracking rate (arcseconds per sidereal second, default = 0.0). Please note that the declinationrate units are arcseconds per SI second.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.RightAscensionRate(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the telescope's right ascension tracking rate.
+            </summary>
+            <remarks>
+            <para>Sets the right ascension tracking rate (arcseconds per sidereal second). Please note that the declinationrate units are arcseconds per SI second.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="RightAscensionRate">Right ascension tracking rate (arcseconds per sideral second). Please note that the declinationrate units are arcseconds per SI second.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SetPark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the telescope's park position
+            </summary>
+            <remarks>
+            <para>Sets the telescope's park position to be its current position.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SideOfPier(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the mount's pointing state.
+            </summary>
+            <remarks>
+            <para>Indicates the pointing state of the mount. 0 = pierEast, 1 = pierWest, -1= pierUnknown</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SideOfPier(System.UInt32,ASCOM.Common.DeviceInterfaces.PointingState,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the mount's pointing state.
+            </summary>
+            <remarks>
+            <para>Sets the pointing state of the mount. 0 = pierEast, 1 = pierWest</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="SideOfPier">New pointing state.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiderealTime(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the local apparent sidereal time.
+            </summary>
+            <remarks>
+            <para>The local apparent sidereal time from the telescope's internal clock (hours, sidereal).The local apparent sidereal time from the telescope's internal clock (hours, sidereal).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteElevation(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the observing site's elevation above mean sea level.
+            </summary>
+            <remarks>
+            <para>The elevation above mean sea level (meters) of the site at which the telescope is located.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteElevation(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the observing site's elevation above mean sea level.
+            </summary>
+            <remarks>
+            <para>Sets the elevation above mean sea level (metres) of the site at which the telescope is located.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="SiteElevation">Elevation above mean sea level (metres).</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteLatitude(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the observing site's latitude.
+            </summary>
+            <remarks>
+            <para>The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteLatitude(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the observing site's latitude.
+            </summary>
+            <remarks>
+            <para>Sets the observing site's latitude (degrees).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="SiteLatitude">Site latitude (degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteLongitude(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the observing site's longitude.
+            </summary>
+            <remarks>
+            <para>The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SiteLongitude(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the observing site's longitude.
+            </summary>
+            <remarks>
+            <para>Sets the observing site's longitude (degrees, positive East, WGS84).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="SiteLongitude">Site longitude (degrees, positive East, WGS84)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Slewing(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope is currently slewing.
+            </summary>
+            <remarks>
+            <para>True if telescope is currently moving in response to one of the Slew methods or the MoveAxis(TelescopeAxes, Double) method, False at all other times.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewSettleTime(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the post-slew settling time.
+            </summary>
+            <remarks>
+            <para>Returns the post-slew settling time (sec.).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewSettleTime(System.UInt32,System.Int16,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the post-slew settling time.
+            </summary>
+            <remarks>
+            <para>Sets the post-slew settling time (integer sec.).</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="SlewSettleTime">Settling time (integer sec.).</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToAltAz(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Synchronously slew to the given local horizontal coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the given local horizontal coordinates, return when slew is complete</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Azimuth">Azimuth coordinate (degrees, North-referenced, positive East/clockwise)</param>
+            <param name="Altitude">Altitude coordinate (degrees, positive up)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToAltAzAsync(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Asynchronously slew to the given local horizontal coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the given local horizontal coordinates, return immediately after the slew starts. The client can poll the Slewing method to determine when the mount reaches the intended coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Azimuth">Azimuth coordinate (degrees, North-referenced, positive East/clockwise)</param>
+            <param name="Altitude">Altitude coordinate (degrees, positive up)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToCoordinates(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Synchronously slew to the given equatorial coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the given equatorial coordinates, return when slew is complete</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="RightAscension">Right Ascension coordinate (hours)</param>
+            <param name="Declination">Declination coordinate (degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToCoordinatesAsync(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Synchronously slew to the given equatorial coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the given equatorial coordinates, return when slew is complete</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="RightAscension">Right Ascension coordinate (hours)</param>
+            <param name="Declination">Declination coordinate (degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToTarget(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Synchronously slew to the TargetRightAscension and TargetDeclination coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the TargetRightAscension and TargetDeclination equatorial coordinates, return when slew is complete</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SlewToTargetAsync(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Asynchronously slew to the TargetRightAscension and TargetDeclination coordinates.
+            </summary>
+            <remarks>
+            <para>Move the telescope to the TargetRightAscension and TargetDeclination equatorial coordinates, return immediatley after the slew starts. The client can poll the Slewing method to determine when the mount reaches the intended coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SyncToAltAz(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Syncs to the given local horizontal coordinates.
+            </summary>
+            <remarks>
+            <para>Matches the scope's local horizontal coordinates to the given local horizontal coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Azimuth">Azimuth coordinate (degrees, North-referenced, positive East/clockwise)</param>
+            <param name="Altitude">Altitude coordinate (degrees, positive up)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SyncToCoordinates(System.UInt32,System.Double,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Syncs to the given equatorial coordinates.
+            </summary>
+            <remarks>
+            <para>Matches the scope's equatorial coordinates to the given equatorial coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="RightAscension">Right Ascension coordinate (hours)</param>
+            <param name="Declination">Declination coordinate (degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.SyncToTarget(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Syncs to the TargetRightAscension and TargetDeclination coordinates.
+            </summary>
+            <remarks>
+            <para>Matches the scope's equatorial coordinates to the TargetRightAscension and TargetDeclination equatorial coordinates.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TargetDeclination(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current target declination.
+            </summary>
+            <remarks>
+            <para>The declination (degrees, positive North) for the target of an equatorial slew or sync operation</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TargetDeclination(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the target declination of a slew or sync.
+            </summary>
+            <remarks>
+            <para>Sets the declination (degrees, positive North) for the target of an equatorial slew or sync operation</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="TargetDeclination">Target declination(degrees)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TargetRightAscension(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current target right ascension.
+            </summary>
+            <remarks>
+            <para>The right ascension (hours) for the target of an equatorial slew or sync operation</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TargetRightAscension(System.UInt32,System.Double,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the target right ascension of a slew or sync.
+            </summary>
+            <remarks>
+            <para>Sets the right ascension (hours) for the target of an equatorial slew or sync operation</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="TargetRightAscension">Target right ascension(hours)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Tracking(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Indicates whether the telescope is tracking.
+            </summary>
+            <remarks>
+            <para>Returns the state of the telescope's sidereal tracking drive.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.Tracking(System.UInt32,System.Boolean,System.UInt32,System.UInt32)">
+            <summary>
+            Enables or disables telescope tracking.
+            </summary>
+            <remarks>
+            <para>Sets the state of the telescope's sidereal tracking drive.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="Tracking">Tracking enabled / disabled</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TrackingRate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the current tracking rate.
+            </summary>
+            <remarks>
+            <para>The current tracking rate of the telescope's sidereal drive.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TrackingRate(System.UInt32,System.Int32,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the mount's tracking rate.
+            </summary>
+            <remarks>
+            <para>Sets the tracking rate of the telescope's sidereal drive. 0 = driveSidereal, 1 = driveLunar, 2 = driveSolar, 3 = driveKing</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="TrackingRate">New tracking rate</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.TrackingRates(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns a collection of supported DriveRates values.
+            </summary>
+            <remarks>
+            <para>Returns an array of supported DriveRates values that describe the permissible values of the TrackingRate property for this telescope type.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.UTCDate(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Returns the UTC date/time of the telescope's internal clock.
+            </summary>
+            <remarks>
+            <para>The UTC date/time of the telescope's internal clock in ISO 8601 format including fractional seconds. The general format (in Microsoft custom date format style) is yyyy-MM-ddTHH:mm:ss.fffffffZ E.g. 2016-03-04T17:45:31.1234567Z or 2016-11-14T07:03:08.1234567Z Please note the compulsory trailing Z indicating the 'Zulu', UTC time zone.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.UTCDate(System.UInt32,System.DateTime,System.UInt32,System.UInt32)">
+            <summary>
+            Sets the UTC date/time of the telescope's internal clock.
+            </summary>
+            <remarks>
+            <para>The UTC date/time of the telescope's internal clock in ISO 8601 format including fractional seconds. The general format (in Microsoft custom date format style) is yyyy-MM-ddTHH:mm:ss.fffffffZ E.g. 2016-03-04T17:45:31.1234567Z or 2016-11-14T07:03:08.1234567Z Please note the compulsory trailing Z indicating the 'Zulu', UTC time zone.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="UTCDate">UTC date/time in ISO 8601 format.</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:ASCOM.Alpaca.TelescopeController.UnPark(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Unparks the mount.
+            </summary>
+            <remarks>
+            <para>Takes telescope out of the Parked state.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="P:ASCOM.Alpaca.DeviceManager.ServerTransactionID">
+            <summary>
+            A server wide Transaction ID Counter
+            </summary>
+        </member>
+    </members>
+</doc>

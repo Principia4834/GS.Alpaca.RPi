@@ -1,0 +1,105 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<UserSecretsId>967c7185-69cc-4a35-bf4b-c3c1cb89f6a3</UserSecretsId>
+		<Authors>Daniel Van Noord</Authors>
+		<Description>A full set of ASCOM Simulators exposing the Alpaca Controller Interfaces</Description>
+		<ApplicationIcon>favicon.ico</ApplicationIcon>
+		<Copyright>2021-25 Daniel Van Noord</Copyright>
+		<AssemblyName>ascom.alpaca.simulators</AssemblyName>
+		<TrimMode>partial</TrimMode>
+		<JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+	</PropertyGroup>
+
+	<Target Name="WriteInformationVersion" AfterTargets="CopyFilesToOutputDirectory">
+		<PropertyGroup>
+			<InfoVersion>$(InformationalVersion)</InfoVersion>
+		</PropertyGroup>
+
+		<WriteLinesToFile File="$(PublishDir)\..\InformationVersion.txt" Overwrite="true" Lines="$(InfoVersion)" />
+	</Target>
+
+	<ItemGroup>
+		<Compile Remove="Setup\**" />
+		<Content Remove="Setup\**" />
+		<EmbeddedResource Remove="Setup\**" />
+		<None Remove="Setup\**" />
+		<TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.Core" />
+		<TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.Razor" />
+		<TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ASCOM.Alpaca.Device" Version="2.2.0" />
+		<PackageReference Include="ASCOM.Common.Components" Version="2.2.0" />
+		<PackageReference Include="ASCOM.Exception.Library" Version="7.0.1" />
+		<PackageReference Include="ASCOM.Tools" Version="2.2.0" />
+		<PackageReference Include="Blazored.Toast" Version="4.2.1" />
+		<PackageReference Include="H.NotifyIcon" Version="2.3.1" />
+		<PackageReference Include="LetsMake.GithubUpdateChecker" Version="0.1.0-rc2" />
+		<PackageReference Include="Microsoft.FeatureManagement.AspNetCore" Version="4.3.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\license.md" Link="license.md">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ASCOM.Alpaca.Razor\GS.Alpaca.Razor.csproj" />
+		<ProjectReference Include="..\GS.Simulator\GS.Simulator.csproj" />
+		<ProjectReference Include="..\OmniSim.BaseDriver\OmniSim.BaseDriver.csproj" />
+		<ProjectReference Include="..\OmniSim.Tools\OmniSim.Tools.csproj" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<DefineConstants Condition=" '$(AppImage)' == 'true' ">$(DefineConstants);BUNDLED</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<DocumentationFile>.\ascom.alpaca.simulators.xml</DocumentationFile>
+		<NoWarn>1701;1702;1591</NoWarn>
+	</PropertyGroup>
+
+	<Target Name="_ResolveCopyLocalNuGetPkgXmls" AfterTargets="ResolveReferences">
+		<ItemGroup>
+			<!-- Copy XML files from all PackageReferences to output dir -->
+			<ReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths->'%(RootDir)%(Directory)%(Filename).xml')" Condition="'%(ReferenceCopyLocalPaths.NuGetPackageId)'!='' and Exists('%(RootDir)%(Directory)%(Filename).xml')" />
+		</ItemGroup>
+	</Target>
+
+	<PropertyGroup>
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<ResourceLanguages>en</ResourceLanguages>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(DefineConstants.Contains('ASCOM_COM'))">
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+
+	<ItemGroup Condition="$(DefineConstants.Contains('ASCOM_COM'))">
+		<TrimmerRootAssembly Include="ASCOM.Simulators.LocalServer" />
+		<TrimmerRootAssembly Include="System.Private.CoreLib" />
+		<TrimmerRootAssembly Include="System.Runtime.InteropServices" />
+		<TrimmerRootAssembly Include="System.Runtime" />
+		<ProjectReference Include="..\ASCOM.COM.LocalServer\OmniSim.LocalServer.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="favicon.ico">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
+  <Target Name="CopyCustomContent" AfterTargets="AfterBuild" Condition="$(DefineConstants.Contains('ASCOM_COM'))">
+    <Copy SourceFiles="..\OmniSimCOMProxy\bin\$(Configuration)\net48\OmniSim.COMProxy.exe" DestinationFolder="$(OutDir)\COM" />
+  </Target>
+
+</Project>

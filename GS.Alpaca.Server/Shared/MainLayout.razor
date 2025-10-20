@@ -1,0 +1,29 @@
+@using GS.Alpaca.Razor.Shared
+@using Blazored.Toast.Configuration
+
+@inherits LayoutComponentBase
+
+<div class="sidebar">
+    <NavMenu />
+</div>
+
+<div class="main">
+
+    <div class="content px-1">
+
+        @if (ServerSettings.UseAuth)
+        {
+        <LoginControl />
+        <AuthorizeView>
+            <Authorized>
+                @Body
+            </Authorized>
+        </AuthorizeView>
+        }
+        else
+        {
+        @Body
+        }
+    </div>
+    <BlazoredToasts Position="ToastPosition.TopLeft" />
+</div>

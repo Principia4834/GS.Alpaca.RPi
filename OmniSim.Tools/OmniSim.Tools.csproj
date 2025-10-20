@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <SignAssembly>false</SignAssembly>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ASCOM.Exception.Library" Version="7.0.1" />
+    <PackageReference Include="ASCOM.Tools" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>

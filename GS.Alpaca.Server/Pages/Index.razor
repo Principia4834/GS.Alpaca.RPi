@@ -1,0 +1,137 @@
+﻿@page "/"
+@using System.Runtime.InteropServices
+
+<fieldset>
+    <legend>ASCOM Alpaca Simulators</legend>
+    <p>Welcome to the ASCOM Alpaca Simulator, a full set of simulators for testing and developing Alpaca Applications.</p>
+
+    <p>Version - @ServerSettings.ServerVersion @(Environment.Is64BitProcess?"64bit":"32bit")</p>
+
+    <p>@RuntimeInformation.OSDescription</p>
+
+    <p>Server Transactions: @DeviceManager.RawTransactionID</p>
+
+
+</fieldset>
+
+    <fieldset>
+        <legend>Swagger API Documentation</legend>
+        <p>The OmniSim includes an interactive Swagger document for the Alpaca APIs and the OmniSim specific APIs. This includes json and yaml swagger files.</p>
+        <a href="/swagger" target="_blank" style=" border:3px solid  #003997; border-radius: 5px; padding: 3px; margin-bottom: 15px">View Swagger docs and interactive queries</a>
+        <p>Please note that the Alpaca API documentation on the ASCOM website is the canonical version. There are several issues with this auto generated version that will be resolved in future versions. This is currently provided only for autogenerating clients and testing the simulators.</p>
+    </fieldset>
+
+@if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+{
+    <fieldset>
+        <legend>ASCOM Status</legend>
+
+
+
+
+        @if (ASCOM_Support && ASCOM_Installed)
+        {
+            <p>This build has ASCOM COM Driver Support and the Platform is detected</p>
+
+            @if (ASCOM_Registered)
+            {
+                <p>A Simulator Driver is registered. You can Reregister if a driver is missing or Unregister the drivers.</p>
+            }
+            else
+            {
+                <p>A Simulator Driver is not registered. You can Register the drivers for COM Access.</p>
+            }
+            <input type="button" value="Register COM Drivers" @onclick="RegisterCOMDrivers" />
+            <input type="button" value="Unregister COM Drivers" @onclick="UnregisterCOMDrivers" />
+        }
+        else if (ASCOM_Support)
+        {
+            <p>This build has ASCOM COM Driver Support but either no ASCOM Platform is installed or the version is to old.</p>
+        }
+        else
+        {
+            <p>This build does not have ASCOM COM Driver Support.</p>
+        }
+
+    </fieldset>
+}
+
+<fieldset>
+    <legend>Simulator Control</legend>
+
+    <label for="telescope_restart">Telescope</label>
+    <input id="telescope_restart" type="button" value="Restart Simulation" @onclick="RestartTelescope" />
+</fieldset>
+
+@code
+{
+    bool ASCOM_Support
+    {
+        get
+        {
+#if ASCOM_COM
+    return true;
+#else
+            return false;
+#endif
+        }
+    }
+
+    bool ASCOM_Installed
+    {
+        get
+        {
+#if ASCOM_COM
+    return OmniSim.LocalServer.Server.ASCOM_Installed;
+#else
+            return false;
+#endif
+        }
+    }
+
+    bool ASCOM_Registered
+    {
+        get
+        {
+#if ASCOM_COM
+    return OmniSim.LocalServer.Server.IsRegistered;
+#else
+            return false;
+#endif
+        }
+    }
+
+    void RegisterCOMDrivers()
+    {
+#if ASCOM_COM
+    try
+    {
+    OmniSim.LocalServer.Server.RegisterObjects();
+    }
+    catch
+    {
+
+    }
+#endif
+    }
+
+    void UnregisterCOMDrivers()
+    {
+#if ASCOM_COM
+    try
+    {
+    OmniSim.LocalServer.Server.UnregisterObjects();
+    }
+    catch
+    {
+
+    }
+#endif
+    }
+
+    void RestartTelescope()
+    {
+        DriverManager.LoadTelescope(0);
+    }
+
+}

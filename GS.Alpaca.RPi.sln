@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33712.159
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowsBase.Vector", "WindowsBase.Vector\WindowsBase.Vector\WindowsBase.Vector.csproj", "{2535B18B-4C8F-4AD4-BF4A-15F379FC4B43}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OmniSim.Tools", "OmniSim.Tools\OmniSim.Tools.csproj", "{02ED9EB0-EF66-451B-9209-5D5FFC6B9DE9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GS.Alpaca.Razor", "ASCOM.Alpaca.Razor\GS.Alpaca.Razor.csproj", "{8B41DB36-02AC-4CBD-A9B3-A062DE3ADCE7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniSim.BaseDriver", "OmniSim.BaseDriver\OmniSim.BaseDriver.csproj", "{B9616962-42D4-4994-9CF8-3D683EF02B16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniSim.SettingsAPIGenerator", "OmniSim.SettingsAPIGenerator\OmniSim.SettingsAPIGenerator.csproj", "{CEE0EFD0-9F43-4C4A-A5C0-D99B8F29E600}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GS.Alpaca.Server", "GS.Alpaca.Server\GS.Alpaca.Server.csproj", "{88D51703-36F8-DFEF-DBB5-686DDC38B3FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GS.Simulator", "GS.Simulator\GS.Simulator.csproj", "{039F4FF9-3FD8-5A2D-A7DB-089122E9F92F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2535B18B-4C8F-4AD4-BF4A-15F379FC4B43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2535B18B-4C8F-4AD4-BF4A-15F379FC4B43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2535B18B-4C8F-4AD4-BF4A-15F379FC4B43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2535B18B-4C8F-4AD4-BF4A-15F379FC4B43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02ED9EB0-EF66-451B-9209-5D5FFC6B9DE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02ED9EB0-EF66-451B-9209-5D5FFC6B9DE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02ED9EB0-EF66-451B-9209-5D5FFC6B9DE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02ED9EB0-EF66-451B-9209-5D5FFC6B9DE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B41DB36-02AC-4CBD-A9B3-A062DE3ADCE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B41DB36-02AC-4CBD-A9B3-A062DE3ADCE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B41DB36-02AC-4CBD-A9B3-A062DE3ADCE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B41DB36-02AC-4CBD-A9B3-A062DE3ADCE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9616962-42D4-4994-9CF8-3D683EF02B16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9616962-42D4-4994-9CF8-3D683EF02B16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9616962-42D4-4994-9CF8-3D683EF02B16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9616962-42D4-4994-9CF8-3D683EF02B16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEE0EFD0-9F43-4C4A-A5C0-D99B8F29E600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEE0EFD0-9F43-4C4A-A5C0-D99B8F29E600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEE0EFD0-9F43-4C4A-A5C0-D99B8F29E600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEE0EFD0-9F43-4C4A-A5C0-D99B8F29E600}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88D51703-36F8-DFEF-DBB5-686DDC38B3FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88D51703-36F8-DFEF-DBB5-686DDC38B3FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88D51703-36F8-DFEF-DBB5-686DDC38B3FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88D51703-36F8-DFEF-DBB5-686DDC38B3FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{039F4FF9-3FD8-5A2D-A7DB-089122E9F92F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{039F4FF9-3FD8-5A2D-A7DB-089122E9F92F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{039F4FF9-3FD8-5A2D-A7DB-089122E9F92F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{039F4FF9-3FD8-5A2D-A7DB-089122E9F92F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8FDCFD04-65EF-4539-A286-F90432A0B234}
+	EndGlobalSection
+EndGlobal

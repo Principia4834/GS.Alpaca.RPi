@@ -1,0 +1,55 @@
+﻿@using System.Web;
+@using Microsoft.AspNetCore.Components.Authorization;
+
+@inject NavigationManager MyNavigationManager
+<fieldset>
+    <AuthorizeView>
+        <Authorized>
+
+            <b>Logged in as: @context.User.Identity.Name</b>
+
+            <a class="btn btn-primary"
+               href="/logout?returnUrl=/"
+               target="_top"
+               style="float: right;">Logout</a>
+        </Authorized>
+
+        <NotAuthorized>
+
+            <form action=@($"/login?url={Return}") method="post">
+                <label for="fname">Username:</label>
+                <input type="text" id="username" name="username">
+                <label for="lname">Password:</label>
+                <input type="password" id="password" name="password">
+                <input class="btn btn-primary" type="submit" value="Login">
+            </form>
+
+        </NotAuthorized>
+    </AuthorizeView>
+</fieldset>
+
+@code {
+
+    string Username = "";
+
+    string Password = "";
+
+    string Return
+    {
+        get
+        {
+            return new Uri(MyNavigationManager.Uri).LocalPath;
+        }
+    }
+
+    private string Encode(string param)
+
+    {
+        return HttpUtility.UrlEncode(param);
+    }
+
+    private void NavigateToLogin()
+    {
+        MyNavigationManager.NavigateTo($"/login?paramUsername={Encode(Username)}&paramPassword={Encode(Password)}&paramReturnUrl={Encode(Return)}", true);
+    }
+}

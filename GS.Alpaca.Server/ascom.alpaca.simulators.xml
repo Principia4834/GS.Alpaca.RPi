@@ -1,0 +1,211 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ascom.alpaca.simulators</name>
+    </assembly>
+    <members>
+        <member name="T:GS.Alpaca.Server.ConsoleAndTraceLogger">
+            <summary>
+            A logger that sends the messages to both the Console and a Trace Logger.
+            </summary>
+        </member>
+        <member name="M:GS.Alpaca.Server.ConsoleAndTraceLogger.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:GS.Alpaca.Server.ConsoleAndTraceLogger"/> class.
+            </summary>
+            <param name="name">The default partial file name for the Trace File.</param>
+        </member>
+        <member name="P:GS.Alpaca.Server.ConsoleAndTraceLogger.LoggingLevel">
+            <summary>
+            Gets the current Logging Level that is in use.
+            </summary>
+        </member>
+        <member name="P:GS.Alpaca.Server.ConsoleAndTraceLogger.LogToConsole">
+            <summary>
+            Gets or sets a value indicating whether the log should write to the console at all.
+            </summary>
+        </member>
+        <member name="M:GS.Alpaca.Server.ConsoleAndTraceLogger.Log(ASCOM.Common.Interfaces.LogLevel,System.String)">
+            <summary>
+            Logs a message at the specified level.
+            </summary>
+            <param name="level">The level of the message. If it is of lower severity then the LoggingLevel it will be dropped.</param>
+            <param name="message">The message to log.</param>
+        </member>
+        <member name="M:GS.Alpaca.Server.ConsoleAndTraceLogger.SetMinimumLoggingLevel(ASCOM.Common.Interfaces.LogLevel)">
+            <summary>
+            Set the minimum logging level. Messages of a lower severity then the LoggingLevel will be dropped.
+            </summary>
+            <param name="level">The new Level to use.</param>
+        </member>
+        <member name="T:GS.Alpaca.Server.ConsoleDisplayOption">
+            <summary>
+            Supported log levels for ILogger devices
+            </summary>
+        </member>
+        <member name="F:GS.Alpaca.Server.ConsoleDisplayOption.StartNormally">
+            <summary>
+            Start the console as an application window that is visible on screen.
+            </summary>
+        </member>
+        <member name="F:GS.Alpaca.Server.ConsoleDisplayOption.StartMinimized">
+            <summary>
+            Start the console as an application window minimized to the task bar..
+            </summary>
+        </member>
+        <member name="F:GS.Alpaca.Server.ConsoleDisplayOption.NoConsole">
+            <summary>
+            No visible console window.
+            </summary>
+        </member>
+        <member name="M:GS.Alpaca.Server.Controllers.SetupController.ServerSetup(System.UInt32)">
+            <summary>
+            Primary browser web page for the overall collection of devices and the Alpaca service
+            </summary>
+            <remarks>
+            This is a single, well-known, API version-independent, browser interface that provides a consistent user experience and well known "new user" starting point for all Alpaca devices. The web page must describe the overall device, including name, manufacturer and version number.
+            This page must also enable the user to set cross cutting information that applies to the whole device such as the operating IP address and port number.
+            This URL could also provide links to configuration pages of available devices, at the developer's discretion.
+            </remarks>
+            <response code="200">Alpaca device primary HTML page</response>
+            <response code="403" examples="Error message describing why the command cannot be processed">The provided path specifies an unsupported device or method, return an error message to display in the browser</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:GS.Alpaca.Server.Controllers.SetupController.TelescopeSetup(System.UInt32)">
+            <summary>
+            Configuration web page for the specified device
+            </summary>
+            <remarks>
+            <para>Web page user interface that enables device specific configuration to be set for each available device. This must be implemented, even if the response to the user is that the device is not configurable.
+            User relevance is increased by providing a unique configuration page for each device.This enables deep linking directly to the device's individual configuration page and avoids displaying non-relevant information about other devices.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <response code="200">Alpaca individual ASCOM device HTML configuration page.This must be implemented, even if the response to the user is that the device is not configurable</response>
+            <response code="403" examples="Error message describing why the command cannot be processed">The provided path specifies an unsupported device or method, return an error message to display in the browser</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="T:GS.Alpaca.Server.SimulatorController">
+            <summary>
+            OmniSim only, not part of Alpaca
+            </summary>
+        </member>
+        <member name="M:GS.Alpaca.Server.SimulatorController.ResetTelescope(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            OmniSim only API - Resets a device settings to the simulator default
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:GS.Alpaca.Server.SimulatorController.RestartTelescope(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            OmniSim only API - Restarts a device simulator to the simulator stored settings and a clean state. This can be used to restart a device so it behaves like the OmniSim server was just freshly started, without restarting the whole OmniSim.
+            </summary>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:GS.Alpaca.Server.SimulatorController.GetXMLTelescope(System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Gets a copy of the profile. This is returned as a string value in the standard Response Value field.
+            </summary>
+            <remarks>
+            <para>This method returns the version of the ASCOM device interface contract to which this device complies. Only one interface version is current at a moment in time and all new devices should be built to the latest interface version. Applications can choose which device interface versions they support and it is in their interest to support previous versions as well as the current version to ensure they can use the largest number of devices.</para>
+            </remarks>
+            <param name="DeviceNumber">Zero based device number as set on the server (A uint32 with a range of 0 to 4294967295)</param>
+            <param name="ClientID">Client's unique ID.</param>
+            <param name="ClientTransactionID">Client's transaction ID.</param>
+            <response code="200">Transaction complete or exception</response>
+            <response code="400" examples="Error message describing why the command cannot be processed">Method or parameter value error, check error message</response>
+            <response code="500" examples="Error message describing why the command cannot be processed">Server internal error, check error message</response>
+        </member>
+        <member name="M:GS.Alpaca.Server.DriverManager.Reset">
+            <summary>
+            Reset all device settings profiles.
+            </summary>
+        </member>
+        <member name="T:GS.Alpaca.Server.Logging">
+            <summary>
+            Support code and storage for an ASCOM logger.
+            </summary>
+        </member>
+        <member name="P:GS.Alpaca.Server.Pages.TelescopeControl.Device">
+            <summary>
+            This access the device type not the interface to allow the device specific settings to be accessed.
+            </summary>
+        </member>
+        <member name="P:GS.Alpaca.Server.Pages.TelescopeSetup.Device">
+            <summary>
+            This access the device type not the interface to allow the device specific settings to be accessed.
+            </summary>
+        </member>
+        <member name="M:GS.Alpaca.Server.Program.StartBrowser(System.Int32)">
+            <summary>
+            Starts the system default handler (normally a browser) for local host and the current port.
+            </summary>
+            <param name="port"></param>
+        </member>
+        <member name="M:GS.Alpaca.Server.Program.CreateHostBuilder(System.String[])">
+            <summary>
+            Creates a asp.net host builder. Sets the content root if a bundled application.
+            </summary>
+            <param name="args"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GS.Alpaca.Server.Program.WriteAndLog(System.String)">
+            <summary>
+            Writes to the console and logs to the primary log provider at the informational level.
+            </summary>
+            <param name="message">The message to write out</param>
+        </member>
+        <member name="M:GS.Alpaca.Server.Program.ShowConsole(GS.Alpaca.Server.ConsoleDisplayOption)">
+            <summary>
+            Shows, minimises or hides the console window (Windows only)
+            </summary>
+            <param name="newConsoleState">The required console window state</param>
+        </member>
+        <member name="M:GS.Alpaca.Server.Program.ConsoleWindowsState(System.IntPtr)">
+            <summary>
+            Return the <see cref="T:GS.Alpaca.Server.ConsoleDisplayOption"/> state of the window with the supplied handle
+            </summary>
+            <param name="hWnd">Windows handle of the window to check.</param>
+            <returns>A <see cref="T:GS.Alpaca.Server.ConsoleDisplayOption"/> value describing the current window state.</returns>
+        </member>
+        <member name="M:GS.Alpaca.Server.WindowsNative.FindWindow(System.String,System.String)">
+            <summary>
+            Return the Windows handle of the windows with the supplied title
+            </summary>
+            <param name="lpClassName">Class name of the windows or null</param>
+            <param name="lpWindowName">Title of the window or null</param>
+            <returns>Windows handle (hWnd) of the window if found or zero if not found</returns>
+        </member>
+        <member name="M:GS.Alpaca.Server.WindowsNative.ShowWindow(System.IntPtr,System.Int32)">
+            <summary>
+            Change the visibility state of the window with the given handle
+            </summary>
+            <param name="hWnd">Windows handle (hWnd) of the window</param>
+            <param name="swOption">Desired WindowsNative.SW_XXX window state</param>
+            <returns>1 if successful, 0 if failed</returns>
+        </member>
+        <member name="M:GS.Alpaca.Server.WindowsNative.IsWindowVisible(System.IntPtr)">
+            <summary>
+            Determine whether a window is hidden or visible in some fashion
+            </summary>
+            <param name="hWnd">Windows handle (hWnd) of the window</param>
+            <returns>True if the window is visible in some way (minimised, maximised or normal window) or false if it is hidden.</returns>
+        </member>
+        <member name="M:GS.Alpaca.Server.WindowsNative.IsIconic(System.IntPtr)">
+            <summary>
+            Determine whether a window is minimised
+            </summary>
+            <param name="hWnd">Windows handle (hWnd) of the window</param>
+            <returns>True if the window is minimised or false if it is not.</returns>
+        </member>
+    </members>
+</doc>
