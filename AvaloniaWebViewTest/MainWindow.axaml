@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:webview="clr-namespace:Avalonia.Controls.WebView;assembly=Avalonia.Controls.WebView"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="AvaloniaWebViewTest.MainWindow"
+        Title="Avalonia WebView Test" 
+        Width="1200" 
+        Height="800">
+    
+    <Grid RowDefinitions="Auto,*">
+        <!-- Navigation Bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="5">
+            <!-- Back Button -->
+            <Button Grid.Column="0" 
+                    Name="BackButton" 
+                    Content="◄ Back" 
+                    Click="BackButton_Click"
+                    Margin="0,0,5,0"
+                    IsEnabled="False"/>
+            
+            <!-- Forward Button -->
+            <Button Grid.Column="1" 
+                    Name="ForwardButton" 
+                    Content="Forward ►" 
+                    Click="ForwardButton_Click"
+                    Margin="0,0,5,0"
+                    IsEnabled="False"/>
+            
+            <!-- URL TextBox -->
+            <TextBox Grid.Column="2" 
+                     Name="UrlTextBox"
+                     Text="https://www.github.com"
+                     VerticalAlignment="Center"
+                     Watermark="Enter URL..."
+                     Margin="0,0,5,0"/>
+            
+            <!-- Navigate Button -->
+            <Button Grid.Column="3" 
+                    Name="NavigateButton" 
+                    Content="Go" 
+                    Click="NavigateButton_Click"
+                    Margin="0,0,5,0"/>
+            
+            <!-- Reload Button -->
+            <Button Grid.Column="4" 
+                    Name="ReloadButton" 
+                    Content="⟳ Reload" 
+                    Click="ReloadButton_Click"
+                    Margin="0,0,5,0"/>
+            
+            <!-- Execute Script Button -->
+            <Button Grid.Column="5" 
+                    Name="ExecuteScriptButton" 
+                    Content="Run Script" 
+                    Click="ExecuteScriptButton_Click"/>
+        </Grid>
+        
+        <!-- WebView Control -->
+        <!-- This is the custom WebView control that embeds the native WebView2 -->
+        <webview:AvaloniaWebView Grid.Row="1" 
+                                 Name="WebView"
+                                 Source="https://www.github.com"
+                                 Margin="5"/>
+    </Grid>
+    
+</Window>
