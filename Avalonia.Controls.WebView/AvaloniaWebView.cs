@@ -6,123 +6,109 @@ using Avalonia.Controls;
 using Avalonia.Platform;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using Avalonia.Controls.WebView.Platforms.Linux;
 
 namespace Avalonia.Controls.WebView
 {
     /// <summary>
-    /// A cross-platform WebView control for Avalonia, currently supporting Windows via WebView2.
-    /// This control extends NativeControlHost to embed a native web browser control.
+    /// Cross-platform Avalonia WebView control. Supports Windows (WebView2) and Linux (native shim using WebKitGTK/X11).
+    /// MacOS can be added similarly via a native shim or managed binding.
     /// </summary>
     public class AvaloniaWebView : NativeControlHost
     {
         #region Styled Properties
-        
-        /// <summary>
-        /// Defines the Source property - the URL to navigate to
-        /// </summary>
         public static readonly StyledProperty<Uri?> SourceProperty =
             AvaloniaProperty.Register<AvaloniaWebView, Uri?>(nameof(Source));
 
-        /// <summary>
-        /// Gets or sets the URL that the WebView should navigate to
-        /// </summary>
         public Uri? Source
         {
             get => GetValue(SourceProperty);
             set => SetValue(SourceProperty, value);
         }
-
         #endregion
 
-        #region Private Fields
-
-        // The native WebView2 control (Windows only for now)
+        #region Windows Fields
         private WebView2? _webView;
-        
-        // Flag to track if the WebView2 environment has been initialized
         private bool _isInitialized;
-        
-        // Task to track async initialization
         private TaskCompletionSource<bool>? _initializationTask;
-
         #endregion
 
-        #region Constructor
+        #region Linux Fields
+        private IntPtr _linuxHandle = IntPtr.Zero; // opaque pointer returned by shim
+        #endregion
 
-        /// <summary>
-        /// Initializes a new instance of the AvaloniaWebView control
-        /// </summary>
         public AvaloniaWebView()
         {
-            // Subscribe to property changes
-            SourceProperty.Changed.AddClassHandler<AvaloniaWebView>((sender, e) => 
-                sender.OnSourceChanged(e));
+            SourceProperty.Changed.AddClassHandler<AvaloniaWebView>((sender, e) => sender.OnSourceChanged(e));
         }
 
-        #endregion
-
-        #region NativeControlHost Override
-
-        /// <summary>
-        /// Creates the native control. This is called by Avalonia's NativeControlHost
-        /// when the control is attached to the visual tree.
-        /// </summary>
-        /// <param name="parent">The parent platform handle (HWND on Windows)</param>
-        /// <returns>A platform handle to the created native control</returns>
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
-            // Ensure we're on Windows
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            // Windows path: WebView2
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                throw new PlatformNotSupportedException(
-                    "This version of AvaloniaWebView only supports Windows. " +
-                    "macOS and Linux support will be added in future versions.");
+                // Create the WebView2 control
+                _webView = new WebView2
+                {
+                    Width = (int)Bounds.Width,
+                    Height = (int)Bounds.Height
+                };
+
+                _initializationTask = new TaskCompletionSource<bool>();
+                InitializeWebView2Async();
+
+                return new PlatformHandle(_webView.Handle, "HWND");
             }
 
-            // Create the WebView2 control
-            _webView = new WebView2
+            // Linux path: use native shim (X11 + WebKitGTK)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // Set initial size - this will be updated by Avalonia's layout system
-                Width = (int)Bounds.Width,
-                Height = (int)Bounds.Height
-            };
+                IntPtr parentXid = parent?.Handle ?? IntPtr.Zero;
+                int x = 0;
+                int y = 0;
+                int width = Math.Max(1, (int)Bounds.Width);
+                int height = Math.Max(1, (int)Bounds.Height);
 
-            // Initialize WebView2 asynchronously
-            // WebView2 requires async initialization to set up the Edge runtime
-            _initializationTask = new TaskCompletionSource<bool>();
-            InitializeWebView2Async();
+                _linuxHandle = NativeWebViewShim.CreateWebView(parentXid, x, y, width, height);
 
-            // Return the HWND handle of the WebView2 control
-            // This tells Avalonia where to position and size the native control
-            return new PlatformHandle(_webView.Handle, "HWND");
+                // Return the parent XID as the platform handle descriptor "XID" so Avalonia can attach.
+                // The shim manages the actual child window and will reparent it into the provided parent.
+                return new PlatformHandle(parentXid, "XID");
+            }
+
+            throw new PlatformNotSupportedException("Unsupported platform for AvaloniaWebView");
         }
 
-        /// <summary>
-        /// Called when the control is being destroyed
-        /// Clean up the native WebView2 control
-        /// </summary>
-        /// <param name="control">The platform handle to destroy</param>
         protected override void DestroyNativeControlCore(IPlatformHandle control)
         {
-            if (_webView != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Dispose of the WebView2 control properly
-                _webView.Dispose();
-                _webView = null;
+                if (_webView != null)
+                {
+                    _webView.Dispose();
+                    _webView = null;
+                }
+
+                _isInitialized = false;
+                base.DestroyNativeControlCore(control);
+                return;
             }
 
-            _isInitialized = false;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                if (_linuxHandle != IntPtr.Zero)
+                {
+                    NativeWebViewShim.DestroyWebView(_linuxHandle);
+                    _linuxHandle = IntPtr.Zero;
+                }
+
+                return;
+            }
+
             base.DestroyNativeControlCore(control);
         }
 
-        #endregion
-
-        #region WebView2 Initialization
-
-        /// <summary>
-        /// Initializes the WebView2 control asynchronously.
-        /// WebView2 requires the Edge WebView2 runtime to be installed.
-        /// </summary>
+        #region WebView2 Initialization (Windows)
         private async void InitializeWebView2Async()
         {
             try
@@ -130,25 +116,14 @@ namespace Avalonia.Controls.WebView
                 if (_webView == null)
                     return;
 
-                // Create a CoreWebView2Environment with default settings
-                // This will use the installed Edge WebView2 runtime
-                var environment = await CoreWebView2Environment.CreateAsync(
-                    browserExecutableFolder: null,  // Use default Edge installation
-                    userDataFolder: null,            // Use default user data folder
-                    options: null                    // Use default options
-                );
-
-                // Initialize the WebView2 control with the environment
+                var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
                 await _webView.EnsureCoreWebView2Async(environment);
 
-                // Mark as initialized
                 _isInitialized = true;
                 _initializationTask?.SetResult(true);
 
-                // Subscribe to WebView2 events
                 SubscribeToWebViewEvents();
 
-                // Navigate to the initial source if one was set
                 if (Source != null)
                 {
                     Navigate(Source);
@@ -156,55 +131,35 @@ namespace Avalonia.Controls.WebView
             }
             catch (Exception ex)
             {
-                // Log or handle initialization errors
                 System.Diagnostics.Debug.WriteLine($"WebView2 initialization failed: {ex.Message}");
                 _initializationTask?.SetException(ex);
             }
         }
 
-        /// <summary>
-        /// Subscribes to WebView2 events for handling navigation, errors, etc.
-        /// </summary>
         private void SubscribeToWebViewEvents()
         {
             if (_webView?.CoreWebView2 == null)
                 return;
 
-            // Handle navigation starting
             _webView.CoreWebView2.NavigationStarting += (s, e) =>
             {
                 System.Diagnostics.Debug.WriteLine($"Navigating to: {e.Uri}");
-                // You can cancel navigation here if needed: e.Cancel = true;
             };
 
-            // Handle navigation completed
             _webView.CoreWebView2.NavigationCompleted += (s, e) =>
             {
-                if (e.IsSuccess)
-                {
-                    System.Diagnostics.Debug.WriteLine("Navigation completed successfully");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Navigation failed: {e.WebErrorStatus}");
-                }
+                if (e.IsSuccess) System.Diagnostics.Debug.WriteLine("Navigation completed successfully");
+                else System.Diagnostics.Debug.WriteLine($"Navigation failed: {e.WebErrorStatus}");
             };
 
-            // Handle DOM content loaded
             _webView.CoreWebView2.DOMContentLoaded += (s, e) =>
             {
                 System.Diagnostics.Debug.WriteLine("DOM content loaded");
             };
         }
-
         #endregion
 
-        #region Navigation Methods
-
-        /// <summary>
-        /// Navigates to the specified URL
-        /// </summary>
-        /// <param name="url">The URL to navigate to</param>
+        #region Navigation
         public void Navigate(string url)
         {
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
@@ -217,121 +172,136 @@ namespace Avalonia.Controls.WebView
             }
         }
 
-        /// <summary>
-        /// Navigates to the specified URI
-        /// </summary>
-        /// <param name="uri">The URI to navigate to</param>
         public async void Navigate(Uri uri)
         {
-            if (uri == null)
-                return;
+            if (uri == null) return;
 
-            // Wait for initialization if not complete
-            if (!_isInitialized && _initializationTask != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                await _initializationTask.Task;
+                if (!_isInitialized && _initializationTask != null)
+                    await _initializationTask.Task;
+
+                if (_webView?.CoreWebView2 != null)
+                    _webView.CoreWebView2.Navigate(uri.ToString());
+
+                return;
             }
 
-            // Navigate using the WebView2 control
-            if (_webView?.CoreWebView2 != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                _webView.CoreWebView2.Navigate(uri.ToString());
+                if (_linuxHandle != IntPtr.Zero)
+                    NativeWebViewShim.NavigateWebView(_linuxHandle, uri.ToString());
+
+                return;
             }
         }
 
-        /// <summary>
-        /// Navigates to the specified HTML string
-        /// </summary>
-        /// <param name="html">The HTML content to display</param>
         public async void NavigateToString(string html)
         {
-            if (string.IsNullOrEmpty(html))
-                return;
+            if (string.IsNullOrEmpty(html)) return;
 
-            // Wait for initialization if not complete
-            if (!_isInitialized && _initializationTask != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                await _initializationTask.Task;
+                if (!_isInitialized && _initializationTask != null)
+                    await _initializationTask.Task;
+
+                if (_webView?.CoreWebView2 != null)
+                    _webView.CoreWebView2.NavigateToString(html);
+
+                return;
             }
 
-            // Load HTML content
-            if (_webView?.CoreWebView2 != null)
+            // Linux shim does not currently implement NavigateToString; you can load about:blank and then execute JS to write content.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                _webView.CoreWebView2.NavigateToString(html);
+                if (_linuxHandle != IntPtr.Zero)
+                {
+                    NativeWebViewShim.NavigateWebView(_linuxHandle, "about:blank");
+                    // Optionally run script to set document.body.innerHTML
+                }
+                return;
             }
         }
 
-        /// <summary>
-        /// Executes JavaScript in the WebView
-        /// </summary>
-        /// <param name="script">The JavaScript code to execute</param>
-        /// <returns>The result of the script execution</returns>
         public async Task<string> ExecuteScriptAsync(string script)
         {
-            // Wait for initialization if not complete
-            if (!_isInitialized && _initializationTask != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                await _initializationTask.Task;
+                if (!_isInitialized && _initializationTask != null)
+                    await _initializationTask.Task;
+
+                if (_webView?.CoreWebView2 != null)
+                    return await _webView.CoreWebView2.ExecuteScriptAsync(script);
+
+                return string.Empty;
             }
 
-            if (_webView?.CoreWebView2 != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return await _webView.CoreWebView2.ExecuteScriptAsync(script);
+                if (_linuxHandle != IntPtr.Zero)
+                {
+                    NativeWebViewShim.ExecuteJs(_linuxHandle, script);
+                }
+
+                // Shim is fire-and-forget; no return value bridge implemented
+                return string.Empty;
             }
 
             return string.Empty;
         }
 
-        /// <summary>
-        /// Reloads the current page
-        /// </summary>
         public void Reload()
         {
-            if (_webView?.CoreWebView2 != null)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                _webView.CoreWebView2.Reload();
+                _webView?.CoreWebView2?.Reload();
+                return;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                if (_linuxHandle != IntPtr.Zero)
+                    NativeWebViewShim.NavigateWebView(_linuxHandle, "about:blank");
+                return;
             }
         }
 
-        /// <summary>
-        /// Navigates back in the browser history
-        /// </summary>
         public void GoBack()
         {
-            if (_webView?.CoreWebView2?.CanGoBack == true)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                _webView.CoreWebView2.GoBack();
+                if (_webView?.CoreWebView2?.CanGoBack == true)
+                    _webView.CoreWebView2.GoBack();
+                return;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Not implemented in shim example
+                return;
             }
         }
 
-        /// <summary>
-        /// Navigates forward in the browser history
-        /// </summary>
         public void GoForward()
         {
-            if (_webView?.CoreWebView2?.CanGoForward == true)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                if (_webView?.CoreWebView2?.CanGoForward == true)
+                    _webView.CoreWebView2.GoForward();
+                return;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                _webView.CoreWebView2.GoForward();
+                // Not implemented in shim example
+                return;
             }
         }
 
-        /// <summary>
-        /// Gets whether the WebView can navigate back
-        /// </summary>
-        public bool CanGoBack => _webView?.CoreWebView2?.CanGoBack ?? false;
-
-        /// <summary>
-        /// Gets whether the WebView can navigate forward
-        /// </summary>
-        public bool CanGoForward => _webView?.CoreWebView2?.CanGoForward ?? false;
-
+        public bool CanGoBack => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? (_webView?.CoreWebView2?.CanGoBack ?? false) : false;
+        public bool CanGoForward => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? (_webView?.CoreWebView2?.CanGoForward ?? false) : false;
         #endregion
 
-        #region Property Change Handlers
-
-        /// <summary>
-        /// Handles changes to the Source property
-        /// </summary>
         private void OnSourceChanged(AvaloniaPropertyChangedEventArgs e)
         {
             if (e.NewValue is Uri newUri)
@@ -339,7 +309,5 @@ namespace Avalonia.Controls.WebView
                 Navigate(newUri);
             }
         }
-
-        #endregion
     }
 }
