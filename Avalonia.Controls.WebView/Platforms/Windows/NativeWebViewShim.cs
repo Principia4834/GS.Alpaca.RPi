@@ -1,6 +1,3 @@
-// P/Invoke wrapper for the native Windows webview shim (webview_shim.dll).
-// The native DLL must be built and placed next to the app executable (or on PATH).
-// The wrapper avoids any compile-time dependency on Microsoft.Web.WebView2.
 using System;
 using System.Runtime.InteropServices;
 
@@ -10,7 +7,6 @@ namespace Avalonia.Controls.WebView.Platforms.Windows
     {
         private const string LibName = "webview_shim.dll";
 
-        // Create a webview. parentHwnd may be IntPtr.Zero for a top-level window.
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "create_webview")]
         public static extern IntPtr CreateWebView(IntPtr parentHwnd, int x, int y, int width, int height);
 
@@ -25,5 +21,21 @@ namespace Avalonia.Controls.WebView.Platforms.Windows
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "execute_js")]
         public static extern void ExecuteJs(IntPtr handle, [MarshalAs(UnmanagedType.LPStr)] string script);
+
+        // New navigation helpers
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "can_go_back")]
+        public static extern int CanGoBack(IntPtr handle);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "can_go_forward")]
+        public static extern int CanGoForward(IntPtr handle);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "go_back")]
+        public static extern void GoBack(IntPtr handle);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "go_forward")]
+        public static extern void GoForward(IntPtr handle);
+
+        [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "reload_webview")]
+        public static extern void Reload(IntPtr handle);
     }
 }

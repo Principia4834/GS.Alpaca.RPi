@@ -26,6 +26,13 @@
     // Execute JS (fire-and-forget)
     void execute_js(void* handle, const char* script);
 
+    // Navigation helpers (new):
+    // int can_go_back(void* handle);    // returns 1 if can go back, 0 otherwise
+    // int can_go_forward(void* handle); // returns 1 if can go forward, 0 otherwise
+    // void go_back(void* handle);
+    // void go_forward(void* handle);
+    // void reload_webview(void* handle);
+
   Limitations:
   - Minimal error checking to keep example short.
   - Production code should add more robust synchronization and error paths.
@@ -226,6 +233,50 @@ static void destroy_instance_on_ui_thread(void *arg) {
     inst->web_view = NULL;
 }
 
+/* Trampolines for synchronous boolean queries */
+typedef struct BoolCall {
+    WebViewInstance *inst;
+    gboolean result;
+} BoolCall;
+
+static void can_go_back_call(void *arg) {
+    BoolCall *bc = (BoolCall*)arg;
+    if (bc->inst && bc->inst->web_view) {
+        bc->result = webkit_web_view_can_go_back(WEBKIT_WEB_VIEW(bc->inst->web_view));
+    } else {
+        bc->result = FALSE;
+    }
+}
+
+static void can_go_forward_call(void *arg) {
+    BoolCall *bc = (BoolCall*)arg;
+    if (bc->inst && bc->inst->web_view) {
+        bc->result = webkit_web_view_can_go_forward(WEBKIT_WEB_VIEW(bc->inst->web_view));
+    } else {
+        bc->result = FALSE;
+    }
+}
+
+/* Fire-and-forget actions */
+static void go_back_action(void *arg) {
+    WebViewInstance *inst = (WebViewInstance*)arg;
+    if (inst && inst->web_view) {
+        webkit_web_view_go_back(WEBKIT_WEB_VIEW(inst->web_view));
+    }
+}
+static void go_forward_action(void *arg) {
+    WebViewInstance *inst = (WebViewInstance*)arg;
+    if (inst && inst->web_view) {
+        webkit_web_view_go_forward(WEBKIT_WEB_VIEW(inst->web_view));
+    }
+}
+static void reload_action(void *arg) {
+    WebViewInstance *inst = (WebViewInstance*)arg;
+    if (inst && inst->web_view) {
+        webkit_web_view_reload(WEBKIT_WEB_VIEW(inst->web_view));
+    }
+}
+
 /* API exported to .NET */
 
 void* create_webview(void* parent_xid_ptr, int x, int y, int width, int height) {
@@ -313,4 +364,44 @@ void execute_js(void* handle, const char* script) {
         g_free(cpy);
     }
     push_task(ej, inst);
+}
+
+/* New navigation helpers */
+
+int can_go_back(void* handle) {
+    if (!handle) return 0;
+    WebViewInstance *inst = (WebViewInstance*)handle;
+    BoolCall bc;
+    bc.inst = inst;
+    bc.result = FALSE;
+    run_on_gtk_thread_sync(can_go_back_call, &bc);
+    return bc.result ? 1 : 0;
+}
+
+int can_go_forward(void* handle) {
+    if (!handle) return 0;
+    WebViewInstance *inst = (WebViewInstance*)handle;
+    BoolCall bc;
+    bc.inst = inst;
+    bc.result = FALSE;
+    run_on_gtk_thread_sync(can_go_forward_call, &bc);
+    return bc.result ? 1 : 0;
+}
+
+void go_back(void* handle) {
+    if (!handle) return;
+    WebViewInstance *inst = (WebViewInstance*)handle;
+    push_task(go_back_action, inst);
+}
+
+void go_forward(void* handle) {
+    if (!handle) return;
+    WebViewInstance *inst = (WebViewInstance*)handle;
+    push_task(go_forward_action, inst);
+}
+
+void reload_webview(void* handle) {
+    if (!handle) return;
+    WebViewInstance *inst = (WebViewInstance*)handle;
+    push_task(reload_action, inst);
 }
