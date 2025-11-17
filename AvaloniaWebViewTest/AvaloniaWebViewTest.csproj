@@ -24,5 +24,17 @@
     <!-- Reference to the WebView component project -->
     <ProjectReference Include="..\Avalonia.Controls.WebView\Avalonia.Controls.WebView.csproj" />
   </ItemGroup>
-  
+
+  <!-- Copy built native shims into the managed test output -->
+  <Target Name="CopyNativeShims" AfterTargets="Build">
+    <ItemGroup>
+      <!-- Windows: try a couple of common output locations (adjust paths to match your native build output) -->
+      <NativeForCopy Include="$(SolutionDir)native\windows\**\webview_shim.dll" Condition="Exists('$(SolutionDir)native\windows')"/>
+      <!-- Linux shared object -->
+      <NativeForCopy Include="$(SolutionDir)native\linux\**\libwebview_shim.so" Condition="Exists('$(SolutionDir)native\linux')"/>
+    </ItemGroup>
+
+    <Copy SourceFiles="@(NativeForCopy)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="@(NativeForCopy) != ''" />
+  </Target>
+
 </Project>
