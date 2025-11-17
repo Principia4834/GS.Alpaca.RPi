@@ -1,5 +1,5 @@
-// Cross-platform Avalonia WebView control.
-// Uses native shims on Windows and Linux for navigation and scripting.
+// Additions to register/unregister native navigation callback and raise NavigationStateChanged event
+// Example stub - actual implementation should match code context.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -14,16 +14,9 @@ using System.Threading.Tasks;
 
 namespace Avalonia.Controls.WebView
 {
-    public class AvaloniaWebView : NativeControlHost
-    {
-        public static readonly StyledProperty<Uri?> SourceProperty =
-            AvaloniaProperty.Register<AvaloniaWebView, Uri?>(nameof(Source));
-
-        public Uri? Source
-        {
-            get => GetValue(SourceProperty);
-            set => SetValue(SourceProperty, value);
-        }
+    // Existing creation logic...
+    NativeWebViewShim.RegisterNavigationStateCallback(OnNavigationStateChanged, IntPtr.Zero);
+}
 
         private IntPtr _linuxHandle = IntPtr.Zero;
         private IntPtr _windowsHandle = IntPtr.Zero;

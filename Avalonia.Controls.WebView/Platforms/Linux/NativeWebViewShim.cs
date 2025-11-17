@@ -9,7 +9,7 @@ namespace Avalonia.Controls.WebView.Platforms.Linux
         private const string LibName = "libwebview_shim.so";
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "create_webview")]
-        public static extern IntPtr CreateWebView(IntPtr parentXid, int x, int y, int width, int height);
+        public static extern IntPtr CreateWebView(IntPtr parentHwnd, int x, int y, int width, int height);
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "destroy_webview")]
         public static extern void DestroyWebView(IntPtr handle);
