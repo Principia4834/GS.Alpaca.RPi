@@ -36,6 +36,10 @@
   Limitations:
   - Minimal error checking to keep example short.
   - Production code should add more robust synchronization and error paths.
+  webview_shim.c  (updated)
+
+  Adds navigation-state callback registration and notification.
+  Hooks into WebKitGTK "load-changed" signal and reports can-go-back / can-go-forward.
 */
 
 #define _GNU_SOURCE
@@ -47,16 +51,22 @@
 
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
-#include <gdk/gdkx.h> // for GDK X11 helpers
+#include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 
+typedef void (*NavigationStateChangedCallback)(int canGoBack, int canGoForward, void* userData);
+
+/* Existing WebViewInstance definition (same as prior) */
 typedef struct {
     GtkWidget *web_view;
-    GtkWidget *container; // a GtkWindow used as a holder (we will reparent its XID)
+    GtkWidget *container;
     GdkWindow *gdk_window;
-    Window xid; // X11 window id
+    Window xid;
+    // signal handler id for load-changed (so we can disconnect)
+    gulong load_changed_handler_id;
 } WebViewInstance;
 
+/* Globals for GTK thread and task queue (existing) */
 static pthread_t gtk_thread;
 static int gtk_thread_started = 0;
 static GMainContext *gtk_context = NULL;
@@ -64,7 +74,7 @@ static GMainLoop *gtk_loop = NULL;
 static GMutex instance_lock;
 static GCond instance_cond;
 
-/* Simple queue of functions to run on GTK main loop */
+/* Task queue types (existing) */
 typedef struct Task {
     void (*func)(void*);
     void *arg;
@@ -88,7 +98,6 @@ static void push_task(void (*func)(void*), void *arg) {
     g_mutex_unlock(&instance_lock);
 }
 
-/* Called on GTK thread to pop and run tasks */
 static gboolean pump_tasks(gpointer _) {
     Task *t = NULL;
     g_mutex_lock(&instance_lock);
@@ -107,17 +116,13 @@ static gboolean pump_tasks(gpointer _) {
     return G_SOURCE_CONTINUE;
 }
 
-/* Initialize GTK on a dedicated thread */
 static void* gtk_thread_func(void *arg) {
-    /* Initialize GTK on this thread */
     gtk_init(NULL, NULL);
 
-    /* Create a private main context and loop so we don't interfere with other code */
     gtk_context = g_main_context_new();
     g_main_context_push_thread_default(gtk_context);
     gtk_loop = g_main_loop_new(gtk_context, FALSE);
 
-    /* Add a recurring idle source to process queued tasks */
     g_idle_add_full(G_PRIORITY_DEFAULT, pump_tasks, NULL, NULL);
 
     g_mutex_lock(&instance_lock);
@@ -125,10 +130,8 @@ static void* gtk_thread_func(void *arg) {
     g_cond_signal(&instance_cond);
     g_mutex_unlock(&instance_lock);
 
-    /* Run the GTK loop */
     g_main_loop_run(gtk_loop);
 
-    /* Cleanup on exit */
     g_main_context_pop_thread_default(gtk_context);
     g_main_context_unref(gtk_context);
     gtk_context = NULL;
@@ -137,7 +140,6 @@ static void* gtk_thread_func(void *arg) {
     return NULL;
 }
 
-/* Ensure the GTK thread is started */
 static void ensure_gtk_thread() {
     g_mutex_lock(&instance_lock);
     if (!gtk_thread_started) {
@@ -150,7 +152,6 @@ static void ensure_gtk_thread() {
             return;
         }
 
-        /* Wait until gtk thread reports started */
         g_mutex_lock(&instance_lock);
         while (!gtk_thread_started) {
             g_cond_wait(&instance_cond, &instance_lock);
@@ -161,7 +162,7 @@ static void ensure_gtk_thread() {
     }
 }
 
-/* Utility: synchronously run a function on GTK thread (blocks until done) */
+/* Synchronous call helper (existing) */
 typedef struct SyncCall {
     void (*func)(void*);
     void *arg;
@@ -193,13 +194,44 @@ static void run_on_gtk_thread_sync(void (*func)(void*), void *arg) {
     g_mutex_clear(&sc.m);
 }
 
-/* Implementation helpers */
+/* Navigation callback registration storage */
+static NavigationStateChangedCallback g_nav_callback = NULL;
+static void* g_nav_user_data = NULL;
+static GMutex g_nav_mutex;
 
+/* Register function exported (C ABI) */
+void register_navigation_state_callback(NavigationStateChangedCallback cb, void* userData) {
+    g_mutex_lock(&g_nav_mutex);
+    g_nav_callback = cb;
+    g_nav_user_data = userData;
+    g_mutex_unlock(&g_nav_mutex);
+}
+
+/* Notification helper called on GTK thread */
+static void notify_navigation_state_changed(WebViewInstance *inst) {
+    if (!inst || !inst->web_view) return;
+    gboolean canBack = webkit_web_view_can_go_back(WEBKIT_WEB_VIEW(inst->web_view));
+    gboolean canForward = webkit_web_view_can_go_forward(WEBKIT_WEB_VIEW(inst->web_view));
+    g_mutex_lock(&g_nav_mutex);
+    if (g_nav_callback) {
+        g_nav_callback(canBack ? 1 : 0, canForward ? 1 : 0, g_nav_user_data);
+    }
+    g_mutex_unlock(&g_nav_mutex);
+}
+
+/* WebKit load-changed handler */
+static void on_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_event, gpointer user_data) {
+    WebViewInstance *inst = (WebViewInstance*)user_data;
+    if (!inst) return;
+    if (load_event == WEBKIT_LOAD_COMMITTED || load_event == WEBKIT_LOAD_FINISHED) {
+        notify_navigation_state_changed(inst);
+    }
+}
+
+/* Create instance helper executed on GTK thread */
 static void create_instance_on_ui_thread(void *arg) {
     WebViewInstance *inst = (WebViewInstance*)arg;
 
-    /* Create a top-level window to host the WebView widget. We will reparent the
-       window to the provided parent XID so the final native window is embedded. */
     inst->container = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_set_size_request(inst->container, 100, 100);
 
@@ -207,25 +239,29 @@ static void create_instance_on_ui_thread(void *arg) {
     gtk_container_add(GTK_CONTAINER(inst->container), inst->web_view);
     gtk_widget_show_all(inst->container);
 
-    /* Realize so GdkWindow is created */
     GdkWindow *gdkwin = gtk_widget_get_window(inst->container);
     inst->gdk_window = gdkwin;
 
-    /* Obtain X11 display and XID */
     Display *disp = GDK_DISPLAY_XDISPLAY(gdk_window_get_display(gdkwin));
     Window xid = GDK_WINDOW_XID(gdkwin);
     inst->xid = xid;
 
-    /* If parent was supplied, reparent the top-level container window under the parent XID */
-    if (inst->xid && inst->xid != 0) {
-        /* nothing here; parent-based reparent is done in create_webview wrapper */
-    }
+    /* Connect load-changed handler for navigation state updates */
+    inst->load_changed_handler_id = g_signal_connect(inst->web_view, "load-changed", G_CALLBACK(on_load_changed), inst);
+
+    /* Notify initial state */
+    notify_navigation_state_changed(inst);
 }
 
+/* Destroy instance on UI thread */
 static void destroy_instance_on_ui_thread(void *arg) {
     WebViewInstance *inst = (WebViewInstance*)arg;
     if (!inst) return;
     if (inst->container) {
+        if (inst->load_changed_handler_id) {
+            g_signal_handlers_disconnect_by_id(inst->web_view, inst->load_changed_handler_id);
+            inst->load_changed_handler_id = 0;
+        }
         gtk_widget_hide(inst->container);
         gtk_widget_destroy(inst->container);
         inst->container = NULL;
@@ -233,84 +269,34 @@ static void destroy_instance_on_ui_thread(void *arg) {
     inst->web_view = NULL;
 }
 
-/* Trampolines for synchronous boolean queries */
-typedef struct BoolCall {
-    WebViewInstance *inst;
-    gboolean result;
-} BoolCall;
-
-static void can_go_back_call(void *arg) {
-    BoolCall *bc = (BoolCall*)arg;
-    if (bc->inst && bc->inst->web_view) {
-        bc->result = webkit_web_view_can_go_back(WEBKIT_WEB_VIEW(bc->inst->web_view));
-    } else {
-        bc->result = FALSE;
-    }
-}
-
-static void can_go_forward_call(void *arg) {
-    BoolCall *bc = (BoolCall*)arg;
-    if (bc->inst && bc->inst->web_view) {
-        bc->result = webkit_web_view_can_go_forward(WEBKIT_WEB_VIEW(bc->inst->web_view));
-    } else {
-        bc->result = FALSE;
-    }
-}
-
-/* Fire-and-forget actions */
-static void go_back_action(void *arg) {
-    WebViewInstance *inst = (WebViewInstance*)arg;
-    if (inst && inst->web_view) {
-        webkit_web_view_go_back(WEBKIT_WEB_VIEW(inst->web_view));
-    }
-}
-static void go_forward_action(void *arg) {
-    WebViewInstance *inst = (WebViewInstance*)arg;
-    if (inst && inst->web_view) {
-        webkit_web_view_go_forward(WEBKIT_WEB_VIEW(inst->web_view));
-    }
-}
-static void reload_action(void *arg) {
-    WebViewInstance *inst = (WebViewInstance*)arg;
-    if (inst && inst->web_view) {
-        webkit_web_view_reload(WEBKIT_WEB_VIEW(inst->web_view));
-    }
-}
-
-/* API exported to .NET */
-
+/* API exported to managed side */
 void* create_webview(void* parent_xid_ptr, int x, int y, int width, int height) {
     ensure_gtk_thread();
 
     WebViewInstance *inst = g_new0(WebViewInstance, 1);
+    inst->load_changed_handler_id = 0;
 
-    /* If parent_xid_ptr is provided, treat as Window (XID) */
     Window parent_xid = 0;
     if (parent_xid_ptr != NULL) {
         parent_xid = (Window)(uintptr_t)parent_xid_ptr;
     }
 
-    /* Create widget on GTK thread synchronously */
     run_on_gtk_thread_sync(create_instance_on_ui_thread, inst);
 
-    /* After instance is created, reparent its window under parent_xid (if provided) */
     if (parent_xid != 0 && inst->gdk_window != NULL) {
         Display *disp = GDK_DISPLAY_XDISPLAY(gdk_window_get_display(inst->gdk_window));
         Window child_xid = GDK_WINDOW_XID(inst->gdk_window);
         if (disp != NULL) {
-            /* Reparent using XReparentWindow */
             XReparentWindow(disp, child_xid, parent_xid, x, y);
             XFlush(disp);
         }
     } else {
-        /* If no parent provided, we just position the created toplevel */
         if (inst->container) {
             gtk_window_move(GTK_WINDOW(inst->container), x, y);
             gtk_window_set_default_size(GTK_WINDOW(inst->container), width, height);
         }
     }
 
-    /* Return the pointer to WebViewInstance as opaque handle */
     return (void*)inst;
 }
 
@@ -324,7 +310,6 @@ void destroy_webview(void* handle) {
 void navigate_webview(void* handle, const char* url) {
     if (!handle || !url) return;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    /* Capture url */
     char *cpy = g_strdup(url);
     void nav(void *arg) {
         WebViewInstance *i = (WebViewInstance*)arg;
@@ -344,8 +329,7 @@ void resize_webview(void* handle, int x, int y, int width, int height) {
         if (i->container) {
             gtk_window_move(GTK_WINDOW(i->container), x, y);
             gtk_window_resize(GTK_WINDOW(i->container), width, height);
-        }
-        else if (i->web_view) {
+        } else if (i->web_view) {
             gtk_widget_set_size_request(i->web_view, width, height);
         }
     }
@@ -366,42 +350,62 @@ void execute_js(void* handle, const char* script) {
     push_task(ej, inst);
 }
 
-/* New navigation helpers */
+/* Navigation helpers (synchronous for queries, fire-and-forget for actions) */
 
 int can_go_back(void* handle) {
     if (!handle) return 0;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    BoolCall bc;
-    bc.inst = inst;
-    bc.result = FALSE;
-    run_on_gtk_thread_sync(can_go_back_call, &bc);
-    return bc.result ? 1 : 0;
+    int result = 0;
+    void cb(void* arg) {
+        WebViewInstance *i = (WebViewInstance*)arg;
+        if (i && i->web_view) {
+            result = webkit_web_view_can_go_back(WEBKIT_WEB_VIEW(i->web_view)) ? 1 : 0;
+        }
+    }
+    run_on_gtk_thread_sync(cb, inst);
+    return result;
 }
 
 int can_go_forward(void* handle) {
     if (!handle) return 0;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    BoolCall bc;
-    bc.inst = inst;
-    bc.result = FALSE;
-    run_on_gtk_thread_sync(can_go_forward_call, &bc);
-    return bc.result ? 1 : 0;
+    int result = 0;
+    void cf(void* arg) {
+        WebViewInstance *i = (WebViewInstance*)arg;
+        if (i && i->web_view) {
+            result = webkit_web_view_can_go_forward(WEBKIT_WEB_VIEW(i->web_view)) ? 1 : 0;
+        }
+    }
+    run_on_gtk_thread_sync(cf, inst);
+    return result;
 }
 
 void go_back(void* handle) {
     if (!handle) return;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    push_task(go_back_action, inst);
+    void gb(void* arg) {
+        WebViewInstance *i = (WebViewInstance*)arg;
+        if (i && i->web_view) webkit_web_view_go_back(WEBKIT_WEB_VIEW(i->web_view));
+    }
+    push_task(gb, inst);
 }
 
 void go_forward(void* handle) {
     if (!handle) return;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    push_task(go_forward_action, inst);
+    void gf(void* arg) {
+        WebViewInstance *i = (WebViewInstance*)arg;
+        if (i && i->web_view) webkit_web_view_go_forward(WEBKIT_WEB_VIEW(i->web_view));
+    }
+    push_task(gf, inst);
 }
 
 void reload_webview(void* handle) {
     if (!handle) return;
     WebViewInstance *inst = (WebViewInstance*)handle;
-    push_task(reload_action, inst);
+    void rl(void* arg) {
+        WebViewInstance *i = (WebViewInstance*)arg;
+        if (i && i->web_view) webkit_web_view_reload(WEBKIT_WEB_VIEW(i->web_view));
+    }
+    push_task(rl, inst);
 }

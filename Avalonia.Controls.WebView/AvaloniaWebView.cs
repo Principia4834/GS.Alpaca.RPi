@@ -1,15 +1,16 @@
 // Cross-platform Avalonia WebView control.
 // Uses native shims on Windows and Linux for navigation and scripting.
 
-using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Platform;
 using Avalonia.Controls.WebView.Platforms.Linux;
 using Avalonia.Controls.WebView.Platforms.Windows;
+using Avalonia.Platform;
+using Avalonia.Threading;
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Avalonia.Controls.WebView
 {
@@ -32,7 +33,96 @@ namespace Avalonia.Controls.WebView
             SourceProperty.Changed.AddClassHandler<AvaloniaWebView>((sender, e) => sender.OnSourceChanged(e));
         }
 
-        protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
+        public event EventHandler? NavigationStateChanged;
+
+        // native callback delegates & pinned userdata
+        private Platforms.Windows.NativeWebViewShim.NavigationStateChangedCallback? _winNavCallback;
+        private Platforms.Linux.NativeWebViewShim.NavigationStateChangedCallback? _linuxNavCallback;
+        private GCHandle _nativeCallbackUserData;
+        private bool _nativeCallbackRegistered = false;
+
+        private void RegisterNativeNavigationCallback()
+        {
+            // Pass a GCHandle to 'this' as userData (so native can return it)
+            _nativeCallbackUserData = GCHandle.Alloc(this);
+            IntPtr userData = GCHandle.ToIntPtr(_nativeCallbackUserData);
+
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && _windowsHandle != IntPtr.Zero)
+                {
+                    _winNavCallback = new Platforms.Windows.NativeWebViewShim.NavigationStateChangedCallback(NativeNavStateHandler);
+                    Platforms.Windows.NativeWebViewShim.RegisterNavigationStateCallback(_winNavCallback, userData);
+                    _nativeCallbackRegistered = true;
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && _linuxHandle != IntPtr.Zero)
+                {
+                    _linuxNavCallback = new Platforms.Linux.NativeWebViewShim.NavigationStateChangedCallback(NativeNavStateHandler);
+                    Platforms.Linux.NativeWebViewShim.RegisterNavigationStateCallback(_linuxNavCallback, userData);
+                    _nativeCallbackRegistered = true;
+                }
+            }
+            catch (DllNotFoundException) { }
+            catch (Exception ex) { Debug.WriteLine($"RegisterNativeNavigationCallback failed: {ex}"); }
+        }
+
+        private static void NativeNavStateHandler(int canGoBack, int canGoForward, IntPtr userData)
+        {
+            try
+            {
+                var handle = GCHandle.FromIntPtr(userData);
+                if (handle.Target is AvaloniaWebView instance)
+                {
+                    // Marshal to Avalonia UI thread
+                    Dispatcher.UIThread.Post(() => instance.OnNavigationStateChanged(canGoBack != 0, canGoForward != 0));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"NavigationState callback error: {ex}");
+            }
+        }
+
+        private void OnNavigationStateChanged(bool canGoBack, bool canGoForward)
+        {
+            NavigationStateChanged?.Invoke(this, EventArgs.Empty);
+
+            // If you have properties for CanGoBack/CanGoForward, set and raise notifications here.
+            // e.g. SetValue(CanGoBackProperty, canGoBack);
+        }
+
+        private void UnregisterNativeNavigationCallback()
+        {
+            try
+            {
+                if (_nativeCallbackRegistered)
+                {
+                    // unregister by passing null callback (native implementation should handle null as unregister)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        Platforms.Windows.NativeWebViewShim.RegisterNavigationStateCallback(null, IntPtr.Zero);
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                        Platforms.Linux.NativeWebViewShim.RegisterNavigationStateCallback(null, IntPtr.Zero);
+                    _nativeCallbackRegistered = false;
+                }
+
+                if (_nativeCallbackUserData.IsAllocated)
+                {
+                    _nativeCallbackUserData.Free();
+                }
+
+                _winNavCallback = null;
+                _linuxNavCallback = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UnregisterNativeNavigationCallback failed: {ex}");
+            }
+        }
+
+        // Call RegisterNativeNavigationCallback immediately after successful CreateWebView
+        // and UnregisterNativeNavigationCallback in DestroyNativeControlCore.
+
+protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

@@ -3,11 +3,27 @@
   Improved native Windows shim that hosts Microsoft Edge WebView2 in a child window
   and exposes a minimal C API to managed code.
 
-  Improvements over the basic shim:
-  - Better error/logging using OutputDebugStringA and stderr
-  - More robust UI thread startup and graceful shutdown
-  - Optionally returns the created child HWND as part of the WebViewInstance for diagnostics
-  - CMake-friendly comments and suggestions for locating the WebView2 SDK
+  NOTE (fix summary):
+  The CreateWindowEx hang you observed is most likely caused by creating a child window
+  whose parent HWND belongs to another thread. Windows will synchronously send messages
+  across threads during window creation/initialization which can block if the target
+  thread isn't pumping messages or if there's a synchronization deadlock between threads.
+
+  Fix strategy implemented here:
+  - Track which thread an instance was created on (ownerThreadId).
+  - If the caller is running on the same thread that owns the parent HWND, create the
+    child window synchronously on the caller's thread (no separate shim UI thread).
+    This avoids cross-thread child creation which is the common cause of blocking.
+  - If the parent HWND belongs to a different thread (or no parent was supplied), fall
+    back to the dedicated shim UI thread approach used previously. The shim UI thread
+    runs its own message loop and hosts top-level windows safely.
+  - Destruction and other operations are routed to the same thread that owns the instance:
+    if instance->ownerThreadId equals the shim UI thread id we use run_sync; otherwise the
+    call runs inline on the calling thread (which should be the owner).
+  - Added ownerThreadId to WebViewInstance so we can safely choose where to run cleanup.
+
+  This avoids cross-thread CreateWindowEx deadlocks while preserving the separate UI-thread
+  mode for top-level windows (when parent is not supplied).
 
   Requirements:
   - Visual Studio 2019/2022 with C++ toolset (MSVC)
@@ -32,11 +48,21 @@
 
 using namespace Microsoft::WRL;
 
+typedef void(__cdecl* NavigationStateChangedCallback)(int canGoBack, int canGoForward, void* userData);
+
+// Per-instance structure
 struct WebViewInstance {
     HWND parentHwnd;
     HWND childHwnd;
     ICoreWebView2Controller* controller;
     ICoreWebView2* webview;
+    DWORD ownerThreadId;
+    bool createdOnUiThread;
+    // store tokens for event cleanup
+    EventRegistrationToken navigationCompletedToken;
+    EventRegistrationToken historyChangedToken;
+    bool hasNavigationCompletedToken;
+    bool hasHistoryChangedToken;
 };
 
 static std::thread g_uiThread;
@@ -45,6 +71,12 @@ static std::condition_variable g_cv;
 static bool g_threadReady = false;
 static std::atomic<bool> g_running{ false };
 static std::queue<std::function<void()>> g_tasks;
+static DWORD g_uiThreadId = 0;
+
+// Navigation callback storage (single subscriber model)
+static NavigationStateChangedCallback g_navStateCallback = nullptr;
+static void* g_navStateUserData = nullptr;
+static std::mutex g_navCallbackMutex;
 
 static void log_debug(const char* msg) {
     OutputDebugStringA(msg);
@@ -60,9 +92,11 @@ static void post_to_ui_thread(std::function<void()> f) {
 }
 
 static void ui_thread_func() {
+    g_uiThreadId = GetCurrentThreadId();
+
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(hr)) {
-        log_debug("webview_shim: CoInitializeEx failed");
+        log_debug("webview_shim: CoInitializeEx failed on UI thread");
         return;
     }
 
@@ -74,7 +108,6 @@ static void ui_thread_func() {
 
     MSG msg;
     while (g_running.load()) {
-        // process tasks
         std::function<void()> task;
         {
             std::unique_lock<std::mutex> lk(g_mutex);
@@ -91,7 +124,6 @@ static void ui_thread_func() {
             catch (...) { log_debug("webview_shim: task threw exception"); }
         }
 
-        // Windows messages
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -100,6 +132,7 @@ static void ui_thread_func() {
     }
 
     CoUninitialize();
+    g_uiThreadId = 0;
 }
 
 static void ensure_ui_thread() {
@@ -114,7 +147,6 @@ static void ensure_ui_thread() {
 static LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_SIZE:
-        // The controller will be resized by resize calls; keep default behaviour
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -164,40 +196,82 @@ void run_sync(F&& f) {
     if (eptr) std::rethrow_exception(eptr);
 }
 
+// Helper to run inline on owner thread if not created on shim UI thread
+static void run_or_inline_on_owner(WebViewInstance* inst, std::function<void()> f) {
+    if (inst->createdOnUiThread && g_uiThreadId != 0 && inst->ownerThreadId == g_uiThreadId) {
+        run_sync(f);
+    }
+    else {
+        f();
+    }
+}
+
+// notify function calls the registered managed callback (if any)
+static void notify_navigation_state_changed(WebViewInstance* inst) {
+    std::lock_guard<std::mutex> lk(g_navCallbackMutex);
+    if (!g_navStateCallback || !inst || !inst->webview) return;
+    BOOL canBack = FALSE;
+    BOOL canForward = FALSE;
+    HRESULT hr1 = inst->webview->get_CanGoBack(&canBack);
+    HRESULT hr2 = inst->webview->get_CanGoForward(&canForward);
+    int cb = (SUCCEEDED(hr1) && canBack) ? 1 : 0;
+    int cf = (SUCCEEDED(hr2) && canForward) ? 1 : 0;
+    // Call callback (Cdecl)
+    g_navStateCallback(cb, cf, g_navStateUserData);
+}
+
+// Exported registration function (managed will call)
+extern "C" __declspec(dllexport) void register_navigation_state_callback(NavigationStateChangedCallback cb, void* userData) {
+    std::lock_guard<std::mutex> lk(g_navCallbackMutex);
+    g_navStateCallback = cb;
+    g_navStateUserData = userData;
+}
+
+// Create/destroy/navigate/resize/execute as before, with event hookup
 extern "C" {
 
     __declspec(dllexport) void* create_webview(void* parent_hwnd_ptr, int x, int y, int width, int height) {
-        ensure_ui_thread();
-
         HWND parentHwnd = nullptr;
         if (parent_hwnd_ptr) parentHwnd = (HWND)parent_hwnd_ptr;
 
-        WebViewInstance* inst = new WebViewInstance();
-        inst->parentHwnd = parentHwnd;
-        inst->childHwnd = nullptr;
-        inst->controller = nullptr;
-        inst->webview = nullptr;
+        DWORD parentThreadId = 0;
+        if (parentHwnd) {
+            parentThreadId = GetWindowThreadProcessId(parentHwnd, NULL);
+        }
 
-        run_sync([&] {
-            ensure_window_class();
-            HWND hwndParent = parentHwnd ? parentHwnd : nullptr;
+        ensure_window_class();
+
+        // If caller owns the parent HWND, create inline on caller thread (avoids cross-thread CreateWindowEx)
+        if (parentHwnd != NULL && parentThreadId == GetCurrentThreadId()) {
+            WebViewInstance* inst = new WebViewInstance();
+            inst->parentHwnd = parentHwnd;
+            inst->childHwnd = nullptr;
+            inst->controller = nullptr;
+            inst->webview = nullptr;
+            inst->ownerThreadId = GetCurrentThreadId();
+            inst->createdOnUiThread = false;
+            inst->hasHistoryChangedToken = false;
+            inst->hasNavigationCompletedToken = false;
+
             DWORD style = WS_CHILD | WS_VISIBLE;
-            if (!hwndParent) style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-
             inst->childHwnd = CreateWindowEx(0, L"WebViewHostWindowClass", L"WebViewHost",
-                style, x, y, width, height, hwndParent, NULL, GetModuleHandle(NULL), NULL);
+                style, x, y, width, height, inst->parentHwnd, NULL, GetModuleHandle(NULL), NULL);
 
             if (!inst->childHwnd) {
-                log_debug("webview_shim: CreateWindowEx failed");
-                return;
+                log_debug("webview_shim: CreateWindowEx failed (same-thread parent creation)");
+                delete inst;
+                return NULL;
             }
 
-            // Initialize WebView2 environment and controller
-            HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
+            // Initialize WebView2 environment on this thread
+            HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+            bool coInitializedHere = SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
+
+            CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
                 Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
                     [inst, width, height](HRESULT envResult, ICoreWebView2Environment* env) -> HRESULT {
                         if (FAILED(envResult) || env == nullptr) {
-                            log_debug("webview_shim: CreateCoreWebView2Environment failed");
+                            log_debug("webview_shim: CreateCoreWebView2Environment failed (same-thread)");
                             return S_OK;
                         }
                         env->CreateCoreWebView2Controller(inst->childHwnd,
@@ -208,9 +282,113 @@ extern "C" {
                                         controller->get_CoreWebView2(&inst->webview);
                                         RECT rc; GetClientRect(inst->childHwnd, &rc);
                                         controller->put_Bounds(rc);
+
+                                        // Attach event handlers: try HistoryChanged, fallback to NavigationCompleted
+                                        // Try to QueryInterface for ICoreWebView2_4 to access add_HistoryChanged
+                                        ComPtr<ICoreWebView2_4> webview4;
+                                        if (SUCCEEDED(inst->webview->QueryInterface(IID_PPV_ARGS(&webview4))) && webview4) {
+                                            inst->hasHistoryChangedToken = SUCCEEDED(webview4->add_HistoryChanged(
+                                                Callback<ICoreWebView2HistoryChangedEventHandler>(
+                                                    [inst](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                                                        notify_navigation_state_changed(inst);
+                                                        return S_OK;
+                                                    }).Get(), &inst->historyChangedToken));
+                                        }
+
+                                        // Fallback: attach NavigationCompleted on ICoreWebView2
+                                        if (!inst->hasHistoryChangedToken) {
+                                            inst->hasNavigationCompletedToken = SUCCEEDED(inst->webview->add_NavigationCompleted(
+                                                Callback<ICoreWebView2NavigationCompletedEventHandler>(
+                                                    [inst](ICoreWebView2* sender, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
+                                                        notify_navigation_state_changed(inst);
+                                                        return S_OK;
+                                                    }).Get(), &inst->navigationCompletedToken));
+                                        }
+
+                                        // Notify initial state
+                                        notify_navigation_state_changed(inst);
                                     }
                                     else {
-                                        log_debug("webview_shim: CreateCoreWebView2Controller failed");
+                                        log_debug("webview_shim: CreateCoreWebView2Controller failed (same-thread)");
+                                    }
+                                    return S_OK;
+                                }).Get());
+                        return S_OK;
+                    }).Get());
+
+            (void)coInitializedHere;
+            return (void*)inst;
+        }
+
+        // Otherwise, use shim UI thread to host a top-level or cross-thread safe window
+        ensure_ui_thread();
+
+        WebViewInstance* inst = new WebViewInstance();
+        inst->parentHwnd = parentHwnd;
+        inst->childHwnd = nullptr;
+        inst->controller = nullptr;
+        inst->webview = nullptr;
+        inst->ownerThreadId = g_uiThreadId;
+        inst->createdOnUiThread = true;
+        inst->hasHistoryChangedToken = false;
+        inst->hasNavigationCompletedToken = false;
+
+        run_sync([&] {
+            HWND hwndParent = nullptr;
+            DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+            if (parentHwnd && parentThreadId == g_uiThreadId) {
+                hwndParent = parentHwnd;
+                style = WS_CHILD | WS_VISIBLE;
+            }
+
+            inst->childHwnd = CreateWindowEx(0, L"WebViewHostWindowClass", L"WebViewHost",
+                style, x, y, width, height, hwndParent, NULL, GetModuleHandle(NULL), NULL);
+
+            if (!inst->childHwnd) {
+                log_debug("webview_shim: CreateWindowEx failed (ui-thread mode)");
+                return;
+            }
+
+            CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
+                Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+                    [inst, width, height](HRESULT envResult, ICoreWebView2Environment* env) -> HRESULT {
+                        if (FAILED(envResult) || env == nullptr) {
+                            log_debug("webview_shim: CreateCoreWebView2Environment failed (ui-thread)");
+                            return S_OK;
+                        }
+                        env->CreateCoreWebView2Controller(inst->childHwnd,
+                            Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                                [inst, width, height](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+                                    if (SUCCEEDED(result) && controller != nullptr) {
+                                        inst->controller = controller;
+                                        controller->get_CoreWebView2(&inst->webview);
+                                        RECT rc; GetClientRect(inst->childHwnd, &rc);
+                                        controller->put_Bounds(rc);
+
+                                        // Attach history/navigation handlers (HistoryChanged preferred)
+                                        ComPtr<ICoreWebView2_4> webview4;
+                                        if (SUCCEEDED(inst->webview->QueryInterface(IID_PPV_ARGS(&webview4))) && webview4) {
+                                            inst->hasHistoryChangedToken = SUCCEEDED(webview4->add_HistoryChanged(
+                                                Callback<ICoreWebView2HistoryChangedEventHandler>(
+                                                    [inst](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                                                        notify_navigation_state_changed(inst);
+                                                        return S_OK;
+                                                    }).Get(), &inst->historyChangedToken));
+                                        }
+
+                                        if (!inst->hasHistoryChangedToken) {
+                                            inst->hasNavigationCompletedToken = SUCCEEDED(inst->webview->add_NavigationCompleted(
+                                                Callback<ICoreWebView2NavigationCompletedEventHandler>(
+                                                    [inst](ICoreWebView2* sender, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
+                                                        notify_navigation_state_changed(inst);
+                                                        return S_OK;
+                                                    }).Get(), &inst->navigationCompletedToken));
+                                        }
+
+                                        notify_navigation_state_changed(inst);
+                                    }
+                                    else {
+                                        log_debug("webview_shim: CreateCoreWebView2Controller failed (ui-thread)");
                                     }
                                     return S_OK;
                                 }).Get());
@@ -218,14 +396,28 @@ extern "C" {
                     }).Get());
             });
 
-        // Return opaque pointer (managed side can keep it for later calls).
         return (void*)inst;
     }
 
     __declspec(dllexport) void destroy_webview(void* handle) {
         if (!handle) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
-        run_sync([&] {
+
+        auto destroyLambda = [&] {
+            if (!inst) return;
+            // remove event handlers if present
+            if (inst->webview) {
+                if (inst->hasHistoryChangedToken) {
+                    ComPtr<ICoreWebView2_4> webview4;
+                    if (SUCCEEDED(inst->webview->QueryInterface(IID_PPV_ARGS(&webview4))) && webview4) {
+                        webview4->remove_HistoryChanged(inst->historyChangedToken);
+                    }
+                }
+                if (inst->hasNavigationCompletedToken) {
+                    inst->webview->remove_NavigationCompleted(inst->navigationCompletedToken);
+                }
+            }
+
             if (inst->controller) {
                 inst->controller->Close();
                 inst->controller->Release();
@@ -239,7 +431,15 @@ extern "C" {
                 DestroyWindow(inst->childHwnd);
                 inst->childHwnd = nullptr;
             }
-            });
+            };
+
+        if (inst->createdOnUiThread && inst->ownerThreadId == g_uiThreadId) {
+            run_sync(destroyLambda);
+        }
+        else {
+            destroyLambda();
+        }
+
         delete inst;
     }
 
@@ -247,22 +447,23 @@ extern "C" {
         if (!handle || !url) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
         std::string s(url);
-        // convert UTF-8 to wide
         int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
         std::wstring wurl(len, 0);
         MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &wurl[0], len);
 
-        run_sync([&] {
+        auto nav = [&] {
             if (inst->webview) {
                 inst->webview->Navigate(wurl.c_str());
             }
-            });
+            };
+
+        run_or_inline_on_owner(inst, nav);
     }
 
     __declspec(dllexport) void resize_webview(void* handle, int x, int y, int width, int height) {
         if (!handle) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
-        run_sync([&] {
+        auto rs = [&] {
             if (inst->childHwnd) {
                 MoveWindow(inst->childHwnd, x, y, width, height, TRUE);
             }
@@ -270,7 +471,8 @@ extern "C" {
                 RECT rc; GetClientRect(inst->childHwnd, &rc);
                 inst->controller->put_Bounds(rc);
             }
-            });
+            };
+        run_or_inline_on_owner(inst, rs);
     }
 
     __declspec(dllexport) void execute_js(void* handle, const char* script) {
@@ -283,72 +485,60 @@ extern "C" {
 
         post_to_ui_thread([inst, wscript]() {
             if (inst->webview) {
-                // fire-and-forget; no result returned
                 inst->webview->ExecuteScript(wscript.c_str(), nullptr);
             }
             });
     }
 
-    /* Navigation helpers exported to managed side */
-
-    /* Returns 1 if can go back, 0 otherwise */
     __declspec(dllexport) int can_go_back(void* handle) {
         if (!handle) return 0;
         WebViewInstance* inst = (WebViewInstance*)handle;
         int result = 0;
-        run_sync([&] {
+        auto cb = [&] {
             if (inst->webview) {
                 BOOL b = FALSE;
                 if (SUCCEEDED(inst->webview->get_CanGoBack(&b)) && b) result = 1;
             }
-            });
+            };
+        run_or_inline_on_owner(inst, cb);
         return result;
     }
 
-    /* Returns 1 if can go forward, 0 otherwise */
     __declspec(dllexport) int can_go_forward(void* handle) {
         if (!handle) return 0;
         WebViewInstance* inst = (WebViewInstance*)handle;
         int result = 0;
-        run_sync([&] {
+        auto cf = [&] {
             if (inst->webview) {
                 BOOL b = FALSE;
                 if (SUCCEEDED(inst->webview->get_CanGoForward(&b)) && b) result = 1;
             }
-            });
+            };
+        run_or_inline_on_owner(inst, cf);
         return result;
     }
 
-    /* Go back (fire-and-forget) */
     __declspec(dllexport) void go_back(void* handle) {
         if (!handle) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
         post_to_ui_thread([inst]() {
-            if (inst->webview) {
-                inst->webview->GoBack();
-            }
+            if (inst->webview) inst->webview->GoBack();
             });
     }
 
-    /* Go forward (fire-and-forget) */
     __declspec(dllexport) void go_forward(void* handle) {
         if (!handle) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
         post_to_ui_thread([inst]() {
-            if (inst->webview) {
-                inst->webview->GoForward();
-            }
+            if (inst->webview) inst->webview->GoForward();
             });
     }
 
-    /* Reload the webview (fire-and-forget) */
     __declspec(dllexport) void reload_webview(void* handle) {
         if (!handle) return;
         WebViewInstance* inst = (WebViewInstance*)handle;
         post_to_ui_thread([inst]() {
-            if (inst->webview) {
-                inst->webview->Reload();
-            }
+            if (inst->webview) inst->webview->Reload();
             });
     }
 

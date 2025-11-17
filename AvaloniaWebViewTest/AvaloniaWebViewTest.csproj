@@ -1,28 +1,40 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-  </PropertyGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <!-- Avalonia packages -->
-    <PackageReference Include="Avalonia" Version="11.3.8" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.8" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.8" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
-    
-    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.8" />
-  </ItemGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <!-- Reference to the WebView component project -->
-    <ProjectReference Include="..\Avalonia.Controls.WebView\Avalonia.Controls.WebView.csproj" />
-  </ItemGroup>
-  
+	<ItemGroup>
+		<!-- Avalonia packages -->
+		<PackageReference Include="Avalonia" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.8" />
+		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.8" />
+
+		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.8" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Reference to the WebView component project -->
+		<ProjectReference Include="..\Avalonia.Controls.WebView\Avalonia.Controls.WebView.csproj" />
+	</ItemGroup>
+
+	<!-- Copy built native shims into the managed test output -->
+	<Target Name="CopyNativeShims" AfterTargets="Build">
+		<ItemGroup>
+			<!-- Windows: try a couple of common output locations (adjust paths to match your native build output) -->
+			<NativeForCopy Include="$(SolutionDir)native\windows\**\windows_webview_shim.dll" Condition="Exists('$(SolutionDir)native\windows')"/>
+			<!-- Linux shared object -->
+			<NativeForCopy Include="$(SolutionDir)native\linux\**\linux_webview_shim_shim.so" Condition="Exists('$(SolutionDir)native\linux')"/>
+		</ItemGroup>
+
+		<Copy SourceFiles="@(NativeForCopy)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="@(NativeForCopy) != ''" />
+	</Target>
+
 </Project>
