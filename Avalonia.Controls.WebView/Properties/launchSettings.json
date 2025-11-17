@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Avalonia.Controls.WebView": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

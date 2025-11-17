@@ -225,7 +225,7 @@ namespace Avalonia.Controls.WebView
         {
             if (e.NewValue is Uri newUri)
             {
-                Navigate(newUri);
+                Navigate(newUri.ToString());
             }
         }
     }

@@ -5,7 +5,7 @@ namespace Avalonia.Controls.WebView.Platforms.Windows
 {
     internal static class NativeWebViewShim
     {
-        private const string LibName = "webview_shim.dll";
+        private const string LibName = "Avalonia.Controls.Webview.Native.dll";
 
         [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "create_webview")]
         public static extern IntPtr CreateWebView(IntPtr parentHwnd, int x, int y, int width, int height);

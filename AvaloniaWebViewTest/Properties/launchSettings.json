@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AvaloniaWebViewTest": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
